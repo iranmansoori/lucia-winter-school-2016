@@ -3,17 +3,17 @@ package se.oru.aass.lucia2016.meta;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.TreeSet;
+import java.util.Vector;
 
 import org.hamcrest.core.IsInstanceOf;
 import org.metacsp.framework.Constraint;
 import org.metacsp.framework.ConstraintNetwork;
 import org.metacsp.framework.ConstraintSolver;
 import org.metacsp.framework.Variable;
+import org.metacsp.framework.VariablePrototype;
 import org.metacsp.framework.meta.MetaConstraint;
 import org.metacsp.framework.meta.MetaConstraintSolver;
 import org.metacsp.framework.meta.MetaVariable;
-import org.metacsp.meta.spatioTemporal.paths.Map;
-import org.metacsp.meta.spatioTemporal.paths.TrajectoryEnvelopeScheduler;
 import org.metacsp.multi.allenInterval.AllenIntervalConstraint;
 import org.metacsp.multi.spatial.DE9IM.DE9IMRelation;
 import org.metacsp.multi.spatial.DE9IM.GeometricShapeDomain;
@@ -29,6 +29,7 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.geom.Polygon;
 
 import se.oru.aass.lucia2016.multi.RobotConstraint;
 import se.oru.aass.lucia2016.multi.ViewConstraint;
@@ -74,6 +75,13 @@ public class ViewCoordinator extends MetaConstraintSolver{
 			ConstraintNetwork metaValue) {
 		ViewConstraintSolver solver = (ViewConstraintSolver)this.getConstraintSolvers()[0];
 		Constraint[] cons = metaValue.getConstraints();
+		ViewSchedulingMetaConstraint ViewSchedulingMC = null; 
+		for (int i = 0; i < this.getMetaConstraints().length; i++) {
+			if(this.getMetaConstraints()[i] instanceof ViewSchedulingMetaConstraint){
+				ViewSchedulingMC = (ViewSchedulingMetaConstraint)this.getMetaConstraints()[i];
+			}
+		}
+		
 		for (int i = 0; i < cons.length; i++) {
 			if(cons[i] instanceof RobotConstraint){
 				Constraint[] tcons = solver.getTrajectoryEnvelopeSolver().getConstraints();
@@ -82,16 +90,35 @@ public class ViewCoordinator extends MetaConstraintSolver{
 					if(tc.getTypes()[0].equals(AllenIntervalConstraint.Type.Meets)){
 						TrajectoryEnvelope from = (TrajectoryEnvelope)tc.getFrom();
 						Constraint during = solver.getTrajectoryEnvelopeSolver().getConstraintNetwork().getConstraints(from, from)[0];
+						ViewSchedulingMC.removeUsage(from);
 						solver.getTrajectoryEnvelopeSolver().removeConstraint(tc);
 						solver.getTrajectoryEnvelopeSolver().removeConstraint(during);
-						solver.getTrajectoryEnvelopeSolver().removeVariable(from);
+						solver.getTrajectoryEnvelopeSolver().removeVariable(from);						
 					}
 						
 				}
 			}
 		}
 		
-		//remove setUsage
+		//TODO:remove setUsage for moveIn 
+		
+		Vector<Variable> trajectoryEnvToRemove = new Vector<Variable>();
+		
+		for (Variable v : metaValue.getVariables()) {
+			if (!metaVariable.containsVariable(v)) {
+				if (v instanceof VariablePrototype) {
+					Variable vReal = metaValue.getSubstitution((VariablePrototype)v);
+					if (vReal != null) {
+						Constraint during = solver.getTrajectoryEnvelopeSolver().getConstraintNetwork().getConstraints(vReal, vReal)[0];						
+						solver.getTrajectoryEnvelopeSolver().removeConstraint(during);
+						ViewSchedulingMC.removeUsage((TrajectoryEnvelope)vReal);
+						trajectoryEnvToRemove.add(vReal);
+					}
+				}
+			}
+		}
+	
+		solver.getTrajectoryEnvelopeSolver().removeVariables(trajectoryEnvToRemove.toArray(new Variable[trajectoryEnvToRemove.size()]));
 		
 	}
 
@@ -143,30 +170,59 @@ public class ViewCoordinator extends MetaConstraintSolver{
 				tcon.setFrom(moveinTE);
 				tcon.setTo(vv.getTrajectoryEnvelope());
 				solver.getTrajectoryEnvelopeSolver().addConstraint(tcon);
-				
-				TrajectoryEnvelope moveOutTE = creatMoveBaseTrajectoryEnvelope(vv);
-				moveOutTE.getSymbolicVariableActivity().setSymbolicDomain("MoveOut");
-				AllenIntervalConstraint meetsMoveOut =  new AllenIntervalConstraint(AllenIntervalConstraint.Type.Meets);
-				meetsMoveOut.setFrom(vv.getTrajectoryEnvelope());
-				meetsMoveOut.setTo(moveOutTE);
-				solver.getTrajectoryEnvelopeSolver().addConstraint(meetsMoveOut);
+
+//				TrajectoryEnvelope moveOutTE = creatMoveBaseTrajectoryEnvelope(vv);
+//				moveOutTE.getSymbolicVariableActivity().setSymbolicDomain("MoveOut");
+//				AllenIntervalConstraint meetsMoveOut =  new AllenIntervalConstraint(AllenIntervalConstraint.Type.Meets);
+//				meetsMoveOut.setFrom(vv.getTrajectoryEnvelope());
+//				meetsMoveOut.setTo(moveOutTE);
+//				solver.getTrajectoryEnvelopeSolver().addConstraint(meetsMoveOut);
 				
 //				//chop te with respect to others paths
 				for (int j = 0; j < vars.length; j++) {
 					if(!((ViewVariable)vars[j]).equals(vv)){
 						refineTrajectoryEnvelopes(moveinTE,((ViewVariable)vars[j]).getFoV());
-						refineTrajectoryEnvelopes(moveOutTE,((ViewVariable)vars[j]).getFoV());
+//						refineTrajectoryEnvelopes(moveOutTE,((ViewVariable)vars[j]).getFoV());
 //						System.out.println(vv);
 					}
 				}
-
-
-				
 			}
 		}
-		//make a trajectory envelope from the robot starting point to the end
-		
-		
+
+		//Make real variables from variable prototypes
+		//this is for moveOut Code
+		for (Variable v :  metaValue.getVariables()) {
+			if (v instanceof VariablePrototype) {
+				// 	Parameters for real instantiation: the first is the component itself, the second is
+				//first argument is the component
+				//second arguement is footprint
+				//third is the robot ID
+				String component = (String)((VariablePrototype) v).getParameters()[0];
+				Polygon footprint = (Polygon)((VariablePrototype) v).getParameters()[1];
+				int robotId = (Integer)((VariablePrototype) v).getParameters()[2];
+				TrajectoryEnvelope moveOutTE = (TrajectoryEnvelope)solver.getTrajectoryEnvelopeSolver().createVariable(component);
+				moveOutTE.setFootprint(footprint);
+				moveOutTE.setRobotID(robotId);
+				Trajectory moveOutTrajectory = new Trajectory(getTrajectory(robotId));				
+				moveOutTE.setTrajectory(moveOutTrajectory);
+				metaValue.addSubstitution((VariablePrototype)v, moveOutTE);
+				ViewSchedulingMC.setUsage(moveOutTE);
+			}
+		}
+
+		//Involve real variables in the constraints
+		for (Constraint con : metaValue.getConstraints()) {
+			Constraint clonedConstraint = (Constraint)con.clone();  
+			Variable[] oldScope = con.getScope();
+			Variable[] newScope = new Variable[oldScope.length];
+			for (int i = 0; i < oldScope.length; i++) {
+				if (oldScope[i] instanceof VariablePrototype) newScope[i] = metaValue.getSubstitution((VariablePrototype)oldScope[i]);
+				else newScope[i] = oldScope[i];
+			}
+			clonedConstraint.setScope(newScope);
+			metaValue.removeConstraint(con);
+			metaValue.addConstraint(clonedConstraint);
+		}
 		return true;
 	}
 	

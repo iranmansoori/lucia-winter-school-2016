@@ -61,14 +61,22 @@ public class TestOverallDesign {
 
 
 		
-		//this is the turtlebot footprint coordinate
-		Coordinate c1 = new Coordinate(1.2, 0.0);
-		Coordinate c2 = new Coordinate(0.6, 1.2);
-		Coordinate c3 = new Coordinate(-0.6, 1.2);
-		Coordinate c4 = new Coordinate(-1.2, 0.0);
-		Coordinate c5 = new Coordinate(-0.6, -1.2);
-		Coordinate c6 = new Coordinate(0.6, -1.2);
+//		//this is the turtlebot footprint coordinate
+//		Coordinate c1 = new Coordinate(1.2, 0.0);
+//		Coordinate c2 = new Coordinate(0.6, 1.2);
+//		Coordinate c3 = new Coordinate(-0.6, 1.2);
+//		Coordinate c4 = new Coordinate(-1.2, 0.0);
+//		Coordinate c5 = new Coordinate(-0.6, -1.2);
+//		Coordinate c6 = new Coordinate(0.6, -1.2);
 			
+
+		//this is the turtlebot footprint coordinate
+		Coordinate c1 = new Coordinate(0.6, 0.0);
+		Coordinate c2 = new Coordinate(0.3, 0.6);
+		Coordinate c3 = new Coordinate(-0.3, 0.6);
+		Coordinate c4 = new Coordinate(-0.6, 0.0);
+		Coordinate c5 = new Coordinate(-0.3, -0.6);
+		Coordinate c6 = new Coordinate(0.3, -0.6);
 		
 
 		

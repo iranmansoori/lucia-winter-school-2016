@@ -10,6 +10,7 @@ import org.metacsp.framework.ConstraintSolver;
 import org.metacsp.framework.ValueOrderingH;
 import org.metacsp.framework.Variable;
 import org.metacsp.framework.VariableOrderingH;
+import org.metacsp.framework.VariablePrototype;
 import org.metacsp.framework.meta.MetaConstraint;
 import org.metacsp.framework.meta.MetaVariable;
 import org.metacsp.meta.symbolsAndTime.Schedulable;
@@ -17,6 +18,7 @@ import org.metacsp.multi.activity.Activity;
 import org.metacsp.multi.allenInterval.AllenIntervalConstraint;
 import org.metacsp.multi.spatial.DE9IM.GeometricShapeDomain;
 import org.metacsp.multi.spatial.DE9IM.GeometricShapeVariable;
+import org.metacsp.multi.spatioTemporal.paths.Trajectory;
 import org.metacsp.multi.spatioTemporal.paths.TrajectoryEnvelope;
 
 
@@ -86,45 +88,25 @@ public class ViewSchedulingMetaConstraint extends Schedulable{
 	
 	@Override
 	public ConstraintNetwork[] getMetaValues(MetaVariable metaVariable) {
-		
 		ConstraintNetwork conflict = metaVariable.getConstraintNetwork();
 		Vector<ConstraintNetwork> ret = new Vector<ConstraintNetwork>();
-		ConstraintNetwork resolver1 = new ConstraintNetwork(null);
-		ConstraintNetwork resolver2 = new ConstraintNetwork(null);
-
 		
-		
-//		ViewVariable vv1 = (ViewVariable)conflict.getVariables()[0];
-//		ViewVariable vv2 = (ViewVariable)conflict.getVariables()[1];
-		
-//		refineTrajectoryEnvelopes(moveOut1TE, vv2.getFoV());
-//		refineTrajectoryEnvelopes(moveOut2TE, vv1.getFoV());
-
 		Variable vv1 = conflict.getVariables()[0];
 		Variable vv2 = conflict.getVariables()[1];
 		TrajectoryEnvelope te1 = null;
 		TrajectoryEnvelope te2 = null;
-		if(vv1 instanceof ViewVariable) te1 = ((ViewVariable)vv1).getTrajectoryEnvelope();
+		if(vv1 instanceof ViewVariable){
+			te1 = ((ViewVariable)vv1).getTrajectoryEnvelope();
+		}
 		else te1 = (TrajectoryEnvelope)vv1;
-		if(vv2 instanceof ViewVariable) te2 = ((ViewVariable)vv2).getTrajectoryEnvelope();
+		if(vv2 instanceof ViewVariable) {
+			te2 = ((ViewVariable)vv2).getTrajectoryEnvelope();
+		}
 		else te2 = (TrajectoryEnvelope)vv2;
 		
-		
-		
-		
-		AllenIntervalConstraint before01 = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before);
-		before01.setFrom(te1);			
-		before01.setTo(te2);
-		resolver1.addConstraint(before01);
+		ConstraintNetwork resolver1 = getResolver(te1, te2);
+		ConstraintNetwork resolver2 = getResolver(te2, te1);
 
-		
-		AllenIntervalConstraint before10 = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before);
-		before10.setFrom(te2);			
-		before10.setTo(te1);
-		resolver2.addConstraint(before10);
-
-		
-		//this is not neccesary correct, it needs double check which one is conflicting with others
 		ret.add(resolver1);
 		ret.add(resolver2);
 		
@@ -132,6 +114,31 @@ public class ViewSchedulingMetaConstraint extends Schedulable{
 		return ret.toArray(new ConstraintNetwork[ret.size()]);
 	}
 
+
+	private ConstraintNetwork getResolver(TrajectoryEnvelope te1, TrajectoryEnvelope te2) {
+		
+		ViewConstraintSolver viewSolver= (ViewConstraintSolver)this.getGroundSolver();
+		ConstraintNetwork resolver = new ConstraintNetwork(null);
+		VariablePrototype moveOut = new VariablePrototype(viewSolver.getTrajectoryEnvelopeSolver(),"Robot" + te1.getRobotID(),te1.getFootprint(),te1.getRobotID());
+		resolver.addVariable(moveOut);
+		AllenIntervalConstraint before = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before);
+		before.setFrom(te1);			
+		before.setTo(te2);
+		resolver.addConstraint(before);
+
+		AllenIntervalConstraint beforeMoveout = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before);
+		beforeMoveout.setFrom(moveOut);			
+		beforeMoveout.setTo(te2);
+		resolver.addConstraint(beforeMoveout);
+		
+		AllenIntervalConstraint senseBeforeMoveAway = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before);
+		senseBeforeMoveAway.setFrom(te1);
+		senseBeforeMoveAway.setTo(moveOut);
+		resolver.addConstraint(senseBeforeMoveAway);	
+		
+		return resolver;
+		
+	}
 
 	@Override
 	public void draw(ConstraintNetwork network) {
@@ -175,7 +182,6 @@ public class ViewSchedulingMetaConstraint extends Schedulable{
 
 	}
 	
-
 
 
 
