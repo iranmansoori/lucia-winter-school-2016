@@ -11,7 +11,10 @@ import org.metacsp.framework.Variable;
 import org.metacsp.framework.VariableOrderingH;
 import org.metacsp.framework.meta.MetaConstraint;
 import org.metacsp.framework.meta.MetaVariable;
+import org.metacsp.multi.spatial.DE9IM.GeometricShapeDomain;
 import org.metacsp.utility.Combination;
+
+import com.vividsolutions.jts.geom.Geometry;
 
 import se.oru.aass.lucia2016.multi.ViewConstraint;
 import se.oru.aass.lucia2016.multi.ViewConstraintSolver;
@@ -50,7 +53,7 @@ public class ViewSelectionMetaConstraint extends MetaConstraint{
 				//if(viewSolver.getRobotAllocationSolver().getViewConstraintByVariable(vv.getSelectionVar()) != null)
 				if(viewSolver.getViewConstraintByVariable(vv) != null)
 					selectionCounter++;
-				else{
+				else{					
 					cn.addVariable(vv);					
 				}
 			}
@@ -75,15 +78,27 @@ public class ViewSelectionMetaConstraint extends MetaConstraint{
 		while (c.hasNext()) {
 			int[] a = c.next();
 			ConstraintNetwork cn = new ConstraintNetwork(null);
+			Vector<ViewVariable> vvs = new Vector<ViewVariable>();
+			boolean infeasible = false;
 			for (int i = 0; i < a.length; i++) {
 				ViewConstraint vc = new ViewConstraint();
-//				vc.setFrom(indexToVar.get(a[i]).getSelectionVar());
-//				vc.setTo(indexToVar.get(a[i]).getSelectionVar());
-				vc.setFrom(indexToVar.get(a[i]));
-				vc.setTo(indexToVar.get(a[i]));
+				ViewVariable curVV = indexToVar.get(a[i]);
+				for (int j = 0; j < vvs.size(); j++) {
+					Geometry shape1 = ((GeometricShapeDomain)curVV.getTrajectoryEnvelope().getEnvelopeVariable().getDomain()).getGeometry();
+					Geometry shape2 = ((GeometricShapeDomain)vvs.get(j).getTrajectoryEnvelope().getEnvelopeVariable().getDomain()).getGeometry();
+					if(shape1.intersects(shape2)){
+						infeasible = true;
+						break;
+					}					
+				}
+				if(infeasible) break;
+				vvs.add(curVV);				
+				vc.setFrom(curVV);
+				vc.setTo(curVV);
 				cn.addConstraint(vc);				
 			}
-			ret.add(cn);
+			if(!infeasible)
+				ret.add(cn);
 		}
 		return ret.toArray(new ConstraintNetwork[ret.size()]);
 	}

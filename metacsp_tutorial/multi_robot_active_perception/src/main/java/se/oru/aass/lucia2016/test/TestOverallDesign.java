@@ -53,30 +53,32 @@ public class TestOverallDesign {
 		Pose viewPose3 = new Pose(-19.23854637146, -6.94821929931641, 0.551774602413026);
 		
 		
+
+		
 		//set the view cone for the FoV
 		Coordinate c7 = new Coordinate(0.0, 0.0);
 		Coordinate c8 = new Coordinate(6.0, 8.0);
 		Coordinate c9 = new Coordinate(6.0, -8.0);
-		
-
-
-		
-//		//this is the turtlebot footprint coordinate
-//		Coordinate c1 = new Coordinate(1.2, 0.0);
-//		Coordinate c2 = new Coordinate(0.6, 1.2);
-//		Coordinate c3 = new Coordinate(-0.6, 1.2);
-//		Coordinate c4 = new Coordinate(-1.2, 0.0);
-//		Coordinate c5 = new Coordinate(-0.6, -1.2);
-//		Coordinate c6 = new Coordinate(0.6, -1.2);
-			
-
 		//this is the turtlebot footprint coordinate
-		Coordinate c1 = new Coordinate(0.6, 0.0);
-		Coordinate c2 = new Coordinate(0.3, 0.6);
-		Coordinate c3 = new Coordinate(-0.3, 0.6);
-		Coordinate c4 = new Coordinate(-0.6, 0.0);
-		Coordinate c5 = new Coordinate(-0.3, -0.6);
-		Coordinate c6 = new Coordinate(0.3, -0.6);
+		Coordinate c1 = new Coordinate(1.2, 0.0);
+		Coordinate c2 = new Coordinate(0.6, 1.2);
+		Coordinate c3 = new Coordinate(-0.6, 1.2);
+		Coordinate c4 = new Coordinate(-1.2, 0.0);
+		Coordinate c5 = new Coordinate(-0.6, -1.2);
+		Coordinate c6 = new Coordinate(0.6, -1.2);
+		
+//		//real size of turtlebots
+//		//set the view cone for the FoV
+//		Coordinate c7 = new Coordinate(0.0, 0.0);
+//		Coordinate c8 = new Coordinate(3.5, 1.5);
+//		Coordinate c9 = new Coordinate(3.5, -1.5);
+//		//this is the turtlebot footprint coordinate
+//		Coordinate c1 = new Coordinate(0.18, 0.0);
+//		Coordinate c2 = new Coordinate(0.09, 0.18);
+//		Coordinate c3 = new Coordinate(-0.09, 0.18);
+//		Coordinate c4 = new Coordinate(-0.18, 0.0);
+//		Coordinate c5 = new Coordinate(-0.09, -0.18);
+//		Coordinate c6 = new Coordinate(0.09, -0.18);
 		
 
 		
