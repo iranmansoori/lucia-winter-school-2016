@@ -28,6 +28,7 @@ public class ViewVariable extends MultiVariable implements Activity{
 
 	private Polygon FOV = null;
 	private Polygon FoVPolygon = null;
+	private double infoGain = 0.0;
 	
 	public ViewVariable(ConstraintSolver cs, int id,
 			ConstraintSolver[] internalSolvers, Variable[] internalVars) {
@@ -116,6 +117,12 @@ public class ViewVariable extends MultiVariable implements Activity{
 		return this;
 	}
 	
+	public void setInfoGain(double infoGain) {
+		this.infoGain = infoGain;
+	}
 	
+	public double getInfoGain() {
+		return infoGain;
+	}
 
 }

@@ -20,6 +20,7 @@ import se.oru.aass.lucia2016.meta.RobotAllocationMetaConstraint;
 import se.oru.aass.lucia2016.meta.ViewCoordinator;
 import se.oru.aass.lucia2016.meta.ViewSchedulingMetaConstraint;
 import se.oru.aass.lucia2016.meta.ViewSelectionMetaConstraint;
+import se.oru.aass.lucia2016.meta.ViewSelectionValOH;
 import se.oru.aass.lucia2016.multi.ViewConstraintSolver;
 import se.oru.aass.lucia2016.multi.ViewVariable;
 
@@ -67,7 +68,7 @@ public class TestOverallDesign {
 		Coordinate c5 = new Coordinate(-0.6, -1.2);
 		Coordinate c6 = new Coordinate(0.6, -1.2);
 		
-//		//real size of turtlebots
+//		//real size 
 //		//set the view cone for the FoV
 //		Coordinate c7 = new Coordinate(0.0, 0.0);
 //		Coordinate c8 = new Coordinate(3.5, 1.5);
@@ -123,7 +124,7 @@ public class TestOverallDesign {
 		solver.addConstraint(duration3);
 		
 		//adding the meta-constraints
-		ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, null) ;
+		ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, new ViewSelectionValOH());
 		viewSelectionMC.setRobotNumber(3);
 		metaSolver.addMetaConstraint(viewSelectionMC);
 		
@@ -141,7 +142,6 @@ public class TestOverallDesign {
 				return (rand.nextInt(3)-1);
 			}
 		});
-				
 		
 		metaSolver.backtrack();
 

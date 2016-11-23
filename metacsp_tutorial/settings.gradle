@@ -15,3 +15,5 @@
  */
 
 include 'multi_robot_active_perception'
+include 'mock-up-flap'
+include 'mock_up_flap_for_caos'
