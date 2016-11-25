@@ -1,5 +1,8 @@
 package se.oru.aass.lucia2016.test;
+import geometry_msgs.PoseWithCovarianceStamped;
+
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.Random;
 import java.util.Vector;
 import java.util.logging.Level;
@@ -11,6 +14,7 @@ import org.metacsp.multi.activity.ActivityNetworkSolver;
 import org.metacsp.multi.allenInterval.AllenIntervalConstraint;
 import org.metacsp.multi.spatial.DE9IM.PolygonalDomain;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
+//import org.metacsp.multi.spatioTemporal.paths.Pose;
 import org.metacsp.multi.spatioTemporal.paths.Trajectory;
 import org.metacsp.multi.spatioTemporal.paths.TrajectoryEnvelopeSolver;
 import org.metacsp.sensing.ConstraintNetworkAnimator;
@@ -18,9 +22,11 @@ import org.metacsp.sensing.InferenceCallback;
 import org.metacsp.time.Bounds;
 import org.metacsp.utility.UI.TrajectoryEnvelopeAnimator;
 import org.metacsp.utility.logging.MetaCSPLogging;
+import org.ros.message.MessageListener;
 import org.ros.namespace.GraphName;
 import org.ros.node.AbstractNodeMain;
 import org.ros.node.ConnectedNode;
+import org.ros.node.topic.Subscriber;
 import org.apache.commons.logging.Log;
 
 import com.vividsolutions.jts.geom.Geometry;
@@ -43,6 +49,7 @@ public class TestROSDispatching extends AbstractNodeMain {
 	private ViewCoordinator metaSolver = null;
 	private ViewConstraintSolver viewSolver = null;
 	private ActivityNetworkSolver ans = null;
+	private HashMap<Integer, geometry_msgs.Pose> robotsCurrentPose = new HashMap<Integer, geometry_msgs.Pose>();
 	
 	private int ROBOTNUMBER = 3; 
 	
@@ -63,11 +70,20 @@ public class TestROSDispatching extends AbstractNodeMain {
 			catch(NullPointerException e) { }
 		}
 		
+		//subscribe to robot pose topic
+		for (int i = 1; i <= ROBOTNUMBER; i++) {
+			subscribeToRobotReportTopic(i);
+		}
 		
 		metaSolver = new ViewCoordinator(0, 10000000, 100);
 		viewSolver = (ViewConstraintSolver)metaSolver.getConstraintSolvers()[0];
 		ans = (ActivityNetworkSolver)((TrajectoryEnvelopeSolver)viewSolver.getConstraintSolvers()[0]).getConstraintSolvers()[0];
 		MetaCSPLogging.setLevel(ViewCoordinator.class, Level.FINEST);
+		metaSolver.setROSNode(connectedNode);
+		metaSolver.setRobotCurrentPose(robotsCurrentPose);
+		
+		
+		
 		
 		Vector<Pose> cameraPoses = new Vector<Pose>();
 		Vector<Double> infoGains = new Vector<Double>();
@@ -122,7 +138,7 @@ public class TestROSDispatching extends AbstractNodeMain {
 		};		
 		FlapForChaosDispatchingFunction[] dfs = new FlapForChaosDispatchingFunction[ROBOTNUMBER];
 		for (int i = 1; i <= ROBOTNUMBER; i++) {
-			dfs[i] = new FlapForChaosDispatchingFunction("Robot"+i);
+			dfs[i-1] = new FlapForChaosDispatchingFunction("Robot"+i);
 		}
 		animator.addDispatchingFunctions(ans, dfs);
 		tea.setConstraintNetworkAnimator(animator);
@@ -151,13 +167,24 @@ public class TestROSDispatching extends AbstractNodeMain {
 	}
 
 	private void setCameraPoses(Vector<Pose> cameraPoses, Vector<Double> infoGains) {
-		cameraPoses.add(new Pose(-12.7615280151367, -6.15457534790039, -3.12842980123163));
+		cameraPoses.add(new Pose(1.05, 4.31, -3.12842980123163));
 		infoGains.add(0.8);
-		cameraPoses.add(new Pose(-14.5186862945557, -2.39040231704712, -1.51838576694655));
+		cameraPoses.add(new Pose(3.55, 2.96, -1.51838576694655));
 		infoGains.add(0.8);
-		cameraPoses.add(new Pose(-19.23854637146, -6.94821929931641, 0.551774602413026));
+		cameraPoses.add(new Pose(3.06, 0.72, 0.551774602413026));
+		infoGains.add(0.8);
+		cameraPoses.add(new Pose(6.09, 0.82, 0.551774602413026));
 		infoGains.add(0.8);
 	}
 
-
+	private void subscribeToRobotReportTopic(final int i) {
+		Subscriber<geometry_msgs.PoseWithCovarianceStamped> poseFeedback = connectedNode.newSubscriber("/turtlebot" + i + "/amcl_pose", geometry_msgs.PoseWithCovarianceStamped._TYPE);
+		poseFeedback.addMessageListener(new MessageListener<geometry_msgs.PoseWithCovarianceStamped>() {
+			@Override
+			public void onNewMessage(geometry_msgs.PoseWithCovarianceStamped message) {
+				//currentPose = message.getPose();
+				robotsCurrentPose.put(i, message.getPose().getPose());
+			}
+		}, 10);	
+	}
 }

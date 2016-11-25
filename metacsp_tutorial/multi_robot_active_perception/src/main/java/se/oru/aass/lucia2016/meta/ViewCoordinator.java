@@ -1,5 +1,7 @@
 package se.oru.aass.lucia2016.meta;
 
+import geometry_msgs.PoseStamped;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.TreeSet;
@@ -18,11 +20,13 @@ import org.metacsp.multi.allenInterval.AllenIntervalConstraint;
 import org.metacsp.multi.spatial.DE9IM.DE9IMRelation;
 import org.metacsp.multi.spatial.DE9IM.GeometricShapeDomain;
 import org.metacsp.multi.spatial.DE9IM.GeometricShapeVariable;
+import org.metacsp.multi.spatioTemporal.paths.Pose;
 import org.metacsp.multi.spatioTemporal.paths.PoseSteering;
 import org.metacsp.multi.spatioTemporal.paths.Trajectory;
 import org.metacsp.multi.spatioTemporal.paths.TrajectoryEnvelope;
 import org.metacsp.multi.spatioTemporal.paths.TrajectoryEnvelopeSolver;
 import org.metacsp.time.Bounds;
+import org.ros.node.ConnectedNode;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
@@ -35,12 +39,17 @@ import se.oru.aass.lucia2016.multi.RobotConstraint;
 import se.oru.aass.lucia2016.multi.ViewConstraint;
 import se.oru.aass.lucia2016.multi.ViewConstraintSolver;
 import se.oru.aass.lucia2016.multi.ViewVariable;
+import se.oru.aass.lucia2016.utility.Convertor;
+import se.oru.aass.lucia2016.utility.PathPlanFactory;
 
 public class ViewCoordinator extends MetaConstraintSolver{
 
 	
 	private HashMap<TrajectoryEnvelope,ArrayList<TrajectoryEnvelope>> refinedWith = new HashMap<TrajectoryEnvelope, ArrayList<TrajectoryEnvelope>>();
+	private ConnectedNode connectedNode = null;
+	private HashMap<Integer, geometry_msgs.Pose> robotsCurrentPose = null;
 	private static final int MINIMUM_SIZE = 5;
+	private Object semaphore = new Object();
 	
 	protected ViewCoordinator(Class<?>[] constraintTypes, long animationTime,
 			ConstraintSolver[] internalSolvers) {
@@ -126,20 +135,15 @@ public class ViewCoordinator extends MetaConstraintSolver{
 	protected boolean addResolverSub(ConstraintNetwork metaVariable,
 			ConstraintNetwork metaValue) {
 		
-		//for test now
 		HashMap<Integer, String> robotToPath = new HashMap<Integer, String>();
-//		robotToPath.put(1, "paths/path1.path");
-//		robotToPath.put(2, "paths/path2.path");
-//		robotToPath.put(3, "paths/path3.path");
-
 		robotToPath.put(1, "paths/rid1_task0.path");
 		robotToPath.put(2, "paths/rid1_task3.path");
 		robotToPath.put(3, "paths/rid1_task5.path");
 
-		ViewSchedulingMetaConstraint ViewSchedulingMC = null; 
+		ViewSchedulingMetaConstraint viewSchedulingMC = null; 
 		for (int i = 0; i < this.getMetaConstraints().length; i++) {
 			if(this.getMetaConstraints()[i] instanceof ViewSchedulingMetaConstraint){
-				ViewSchedulingMC = (ViewSchedulingMetaConstraint)this.getMetaConstraints()[i];
+				viewSchedulingMC = (ViewSchedulingMetaConstraint)this.getMetaConstraints()[i];
 			}
 		}
 		
@@ -148,21 +152,77 @@ public class ViewCoordinator extends MetaConstraintSolver{
 		ViewConstraintSolver solver = (ViewConstraintSolver)this.getConstraintSolvers()[0];
 		Constraint[] cons = metaValue.getConstraints();
 		Variable[] vars =  metaValue.getVariables();
+		HashMap<Integer, ViewVariable> robotToVewvariable = new HashMap<Integer, ViewVariable>();
 		for (int i = 0; i < cons.length; i++) {
 			if(cons[i] instanceof RobotConstraint){
 				RobotConstraint rc = (RobotConstraint)cons[i];
 				ViewVariable vv = (ViewVariable)rc.getFrom();
 				vv.getTrajectoryEnvelope().setRobotID(rc.getRobotId());
 				vv.getTrajectoryEnvelope().getSymbolicVariableActivity().setComponent("Robot" + rc.getRobotId());
-
+				robotToVewvariable.put(rc.getRobotId(), vv);
+			}
+		}		
+		if(connectedNode == null){
+			for (Integer rid : robotToVewvariable.keySet()) {
+				Trajectory trajRobot1 = new Trajectory(robotToPath.get(rid));
+				ViewVariable vv = robotToVewvariable.get(rid);				
 				//create the trajectoryEnvelope
-				TrajectoryEnvelope moveinTE = (TrajectoryEnvelope)solver.getTrajectoryEnvelopeSolver().createVariable("Robot" + rc.getRobotId());
-				Trajectory trajRobot1 = new Trajectory(robotToPath.get(rc.getRobotId()));				
+				TrajectoryEnvelope moveinTE = (TrajectoryEnvelope)solver.getTrajectoryEnvelopeSolver().createVariable("Robot" + rid);
 				moveinTE.setFootprint(vv.getTrajectoryEnvelope().getFootprint());
 				moveinTE.setTrajectory(trajRobot1);
-				moveinTE.setRobotID(rc.getRobotId());
+				moveinTE.setRobotID(rid);
 				moveinTE.setMarking("path");
-				ViewSchedulingMC.setUsage(moveinTE);
+				if(viewSchedulingMC != null)
+					viewSchedulingMC.setUsage(moveinTE);
+				moveinTE.getSymbolicVariableActivity().setSymbolicDomain("MoveIn");				
+				//create a temporal constraint the trajectory and the parkingPolygon (viewVariable)
+				AllenIntervalConstraint tcon = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Meets);
+				tcon.setFrom(moveinTE);
+				tcon.setTo(vv.getTrajectoryEnvelope());
+				solver.getTrajectoryEnvelopeSolver().addConstraint(tcon);
+				//chop te with respect to others paths
+				for (int j = 0; j < vars.length; j++) {
+					if(!((ViewVariable)vars[j]).equals(vv)){
+						refineTrajectoryEnvelopes(moveinTE,((ViewVariable)vars[j]).getFoV());
+					}
+				}
+			}
+		}
+		else{
+			HashMap<Integer, Boolean> robToPathStatus = new HashMap<Integer, Boolean>();
+			HashMap<Integer, Vector<Pose>> robToPathPoses = new HashMap<Integer, Vector<Pose>>();
+			for (Integer rid : robotToVewvariable.keySet()) {				
+				ViewVariable vv = robotToVewvariable.get(rid);
+				
+				Pose vvPose = vv.getTrajectoryEnvelope().getTrajectory().getPose()[vv.getTrajectoryEnvelope().getTrajectory().getPose().length - 1];
+				robToPathStatus.put(rid, false);
+				synchronized (semaphore) {
+					PathPlanFactory.getRobotPathPlanFromROSSerive(robToPathStatus, robToPathPoses, connectedNode, rid, 
+						Convertor.getPoseStamped(robotsCurrentPose.get(rid), connectedNode), 
+						Convertor.getPoseStamped(vvPose, connectedNode));
+				}
+			}
+			while (true) {
+					int counter = 0;
+					for (Integer r : robToPathStatus.keySet()) {
+						if(robToPathStatus.get(r))
+							counter++;
+						
+					}
+					if(counter == robToPathStatus.size())
+						break;					
+			}
+			for (Integer rid : robToPathPoses.keySet()) {
+				Vector<Pose> pathPoses = robToPathPoses.get(rid);
+				ViewVariable vv = robotToVewvariable.get(rid);
+				Trajectory trajRobot1 = new Trajectory(pathPoses.toArray(new Pose[pathPoses.size()]));
+				TrajectoryEnvelope moveinTE = (TrajectoryEnvelope)solver.getTrajectoryEnvelopeSolver().createVariable("Robot" + rid);
+				moveinTE.setFootprint(vv.getTrajectoryEnvelope().getFootprint());
+				moveinTE.setTrajectory(trajRobot1);
+				moveinTE.setRobotID(rid);
+				moveinTE.setMarking("path");
+				if(viewSchedulingMC != null)
+					viewSchedulingMC.setUsage(moveinTE);
 				moveinTE.getSymbolicVariableActivity().setSymbolicDomain("MoveIn");
 				
 				//create a temporal constraint the trajectory and the parkingPolygon (viewVariable)
@@ -170,25 +230,16 @@ public class ViewCoordinator extends MetaConstraintSolver{
 				tcon.setFrom(moveinTE);
 				tcon.setTo(vv.getTrajectoryEnvelope());
 				solver.getTrajectoryEnvelopeSolver().addConstraint(tcon);
-
-//				TrajectoryEnvelope moveOutTE = creatMoveBaseTrajectoryEnvelope(vv);
-//				moveOutTE.getSymbolicVariableActivity().setSymbolicDomain("MoveOut");
-//				AllenIntervalConstraint meetsMoveOut =  new AllenIntervalConstraint(AllenIntervalConstraint.Type.Meets);
-//				meetsMoveOut.setFrom(vv.getTrajectoryEnvelope());
-//				meetsMoveOut.setTo(moveOutTE);
-//				solver.getTrajectoryEnvelopeSolver().addConstraint(meetsMoveOut);
-				
-//				//chop te with respect to others paths
+				//chop te with respect to others paths
 				for (int j = 0; j < vars.length; j++) {
 					if(!((ViewVariable)vars[j]).equals(vv)){
 						refineTrajectoryEnvelopes(moveinTE,((ViewVariable)vars[j]).getFoV());
-//						refineTrajectoryEnvelopes(moveOutTE,((ViewVariable)vars[j]).getFoV());
-//						System.out.println(vv);
 					}
 				}
+
 			}
 		}
-
+	
 		//Make real variables from variable prototypes
 		//this is for moveOut Code
 		for (Variable v :  metaValue.getVariables()) {
@@ -206,7 +257,7 @@ public class ViewCoordinator extends MetaConstraintSolver{
 				Trajectory moveOutTrajectory = new Trajectory(getTrajectory(robotId));				
 				moveOutTE.setTrajectory(moveOutTrajectory);
 				metaValue.addSubstitution((VariablePrototype)v, moveOutTE);
-				ViewSchedulingMC.setUsage(moveOutTE);
+				viewSchedulingMC.setUsage(moveOutTE);
 			}
 		}
 
@@ -226,17 +277,13 @@ public class ViewCoordinator extends MetaConstraintSolver{
 		return true;
 	}
 	
-	private TrajectoryEnvelope creatMoveBaseTrajectoryEnvelope(ViewVariable vv) {
-		ViewConstraintSolver viewSolver= (ViewConstraintSolver)this.getConstraintSolvers()[0];
-		TrajectoryEnvelope moveOutTE = (TrajectoryEnvelope)viewSolver.getTrajectoryEnvelopeSolver().createVariable("Robot" + vv.getTrajectoryEnvelope().getRobotID());
-		Trajectory moveOutTrajectory = new Trajectory(getTrajectory(vv.getTrajectoryEnvelope().getRobotID()));				
-		moveOutTE.setFootprint(vv.getTrajectoryEnvelope().getFootprint());
-		moveOutTE.setTrajectory(moveOutTrajectory);
-		moveOutTE.setRobotID(vv.getTrajectoryEnvelope().getRobotID());
-		return moveOutTE;
-	}
+
+
 
 	private String getTrajectory(int robotID) {
+		//1 4.42, 4.30
+		//2 5.44, 3.68
+		//3 6.35,3.84
 		if(robotID == 1) 
 			return "paths/rid1_task1.path";
 		else if(robotID == 2)
@@ -520,6 +567,18 @@ public class ViewCoordinator extends MetaConstraintSolver{
 		solver.addConstraints(toReturn.getConstraints());
 		
 		return toReturn;
+	}
+
+
+	public void setROSNode(ConnectedNode connectedNode) {
+		this.connectedNode  = connectedNode;
+	}
+
+
+
+	public void setRobotCurrentPose(
+			HashMap<Integer, geometry_msgs.Pose> robotsCurrentPose) {
+		this.robotsCurrentPose  = robotsCurrentPose;		
 	}
 
 }

@@ -19,7 +19,6 @@ public class ViewSelectionValOH extends ValueOrderingH{
 	
 	@Override
 	public int compare(ConstraintNetwork arg0, ConstraintNetwork arg1) {
-		System.out.println("HALLOOOOOOOOOOOOOOOOOOOOOOOO");
 		Constraint[] cons0 = arg0.getConstraints();
 		Constraint[] cons1 = arg1.getConstraints();
 		
