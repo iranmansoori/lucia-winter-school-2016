@@ -168,9 +168,9 @@ public class TestDispatching {
 			}
 		};
 		
-		FlapForChaosDispatchingFunction df1 = new FlapForChaosDispatchingFunction("Robot1");
-		FlapForChaosDispatchingFunction df2 = new FlapForChaosDispatchingFunction("Robot2");
-		FlapForChaosDispatchingFunction df3 = new FlapForChaosDispatchingFunction("Robot3");
+		FlapForChaosDispatchingFunction df1 = new FlapForChaosDispatchingFunction("Robot1", metaSolver, null);
+		FlapForChaosDispatchingFunction df2 = new FlapForChaosDispatchingFunction("Robot2", metaSolver, null);
+		FlapForChaosDispatchingFunction df3 = new FlapForChaosDispatchingFunction("Robot3", metaSolver, null);
 		
 		ConstraintNetworkAnimator animator = new ConstraintNetworkAnimator(ans, 1000, cb);
 		animator.addDispatchingFunctions(ans, df1, df2, df3);

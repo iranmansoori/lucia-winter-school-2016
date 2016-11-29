@@ -50,6 +50,7 @@ public class ViewCoordinator extends MetaConstraintSolver{
 	private HashMap<Integer, geometry_msgs.Pose> robotsCurrentPose = null;
 	private static final int MINIMUM_SIZE = 5;
 	private Object semaphore = new Object();
+	private String prefix = "turtlebot";
 	
 	protected ViewCoordinator(Class<?>[] constraintTypes, long animationTime,
 			ConstraintSolver[] internalSolvers) {
@@ -158,7 +159,7 @@ public class ViewCoordinator extends MetaConstraintSolver{
 				RobotConstraint rc = (RobotConstraint)cons[i];
 				ViewVariable vv = (ViewVariable)rc.getFrom();
 				vv.getTrajectoryEnvelope().setRobotID(rc.getRobotId());
-				vv.getTrajectoryEnvelope().getSymbolicVariableActivity().setComponent("Robot" + rc.getRobotId());
+				vv.getTrajectoryEnvelope().getSymbolicVariableActivity().setComponent(prefix + rc.getRobotId());
 				robotToVewvariable.put(rc.getRobotId(), vv);
 			}
 		}		
@@ -167,7 +168,7 @@ public class ViewCoordinator extends MetaConstraintSolver{
 				Trajectory trajRobot1 = new Trajectory(robotToPath.get(rid));
 				ViewVariable vv = robotToVewvariable.get(rid);				
 				//create the trajectoryEnvelope
-				TrajectoryEnvelope moveinTE = (TrajectoryEnvelope)solver.getTrajectoryEnvelopeSolver().createVariable("Robot" + rid);
+				TrajectoryEnvelope moveinTE = (TrajectoryEnvelope)solver.getTrajectoryEnvelopeSolver().createVariable(prefix + rid);
 				moveinTE.setFootprint(vv.getTrajectoryEnvelope().getFootprint());
 				moveinTE.setTrajectory(trajRobot1);
 				moveinTE.setRobotID(rid);
@@ -183,7 +184,7 @@ public class ViewCoordinator extends MetaConstraintSolver{
 				//chop te with respect to others paths
 				for (int j = 0; j < vars.length; j++) {
 					if(!((ViewVariable)vars[j]).equals(vv)){
-						refineTrajectoryEnvelopes(moveinTE,((ViewVariable)vars[j]).getFoV());
+						//refineTrajectoryEnvelopes(moveinTE,((ViewVariable)vars[j]).getFoV());
 					}
 				}
 			}
@@ -216,7 +217,7 @@ public class ViewCoordinator extends MetaConstraintSolver{
 				Vector<Pose> pathPoses = robToPathPoses.get(rid);
 				ViewVariable vv = robotToVewvariable.get(rid);
 				Trajectory trajRobot1 = new Trajectory(pathPoses.toArray(new Pose[pathPoses.size()]));
-				TrajectoryEnvelope moveinTE = (TrajectoryEnvelope)solver.getTrajectoryEnvelopeSolver().createVariable("Robot" + rid);
+				TrajectoryEnvelope moveinTE = (TrajectoryEnvelope)solver.getTrajectoryEnvelopeSolver().createVariable(prefix + rid);
 				moveinTE.setFootprint(vv.getTrajectoryEnvelope().getFootprint());
 				moveinTE.setTrajectory(trajRobot1);
 				moveinTE.setRobotID(rid);
@@ -233,7 +234,7 @@ public class ViewCoordinator extends MetaConstraintSolver{
 				//chop te with respect to others paths
 				for (int j = 0; j < vars.length; j++) {
 					if(!((ViewVariable)vars[j]).equals(vv)){
-						refineTrajectoryEnvelopes(moveinTE,((ViewVariable)vars[j]).getFoV());
+						//refineTrajectoryEnvelopes(moveinTE,((ViewVariable)vars[j]).getFoV());
 					}
 				}
 
@@ -254,6 +255,7 @@ public class ViewCoordinator extends MetaConstraintSolver{
 				TrajectoryEnvelope moveOutTE = (TrajectoryEnvelope)solver.getTrajectoryEnvelopeSolver().createVariable(component);
 				moveOutTE.setFootprint(footprint);
 				moveOutTE.setRobotID(robotId);
+				moveOutTE.setMarking("path");
 				Trajectory moveOutTrajectory = new Trajectory(getTrajectory(robotId));				
 				moveOutTE.setTrajectory(moveOutTrajectory);
 				metaValue.addSubstitution((VariablePrototype)v, moveOutTE);
@@ -581,4 +583,7 @@ public class ViewCoordinator extends MetaConstraintSolver{
 		this.robotsCurrentPose  = robotsCurrentPose;		
 	}
 
+	public String getPrefix() {
+		return prefix;
+	}
 }

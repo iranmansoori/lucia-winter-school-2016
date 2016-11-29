@@ -22,12 +22,13 @@ import org.metacsp.sensing.InferenceCallback;
 import org.metacsp.time.Bounds;
 import org.metacsp.utility.UI.TrajectoryEnvelopeAnimator;
 import org.metacsp.utility.logging.MetaCSPLogging;
+import org.metacsp.utility.timelinePlotting.TimelinePublisher;
 import org.ros.message.MessageListener;
 import org.ros.namespace.GraphName;
 import org.ros.node.AbstractNodeMain;
 import org.ros.node.ConnectedNode;
 import org.ros.node.topic.Subscriber;
-import org.apache.commons.logging.Log;
+
 
 import com.vividsolutions.jts.geom.Geometry;
 
@@ -100,7 +101,7 @@ public class TestROSDispatching extends AbstractNodeMain {
 		metaSolver.addMetaConstraint(RobotAllocationMC);
 		
 		ViewSchedulingMetaConstraint viewSchedulingMC = new ViewSchedulingMetaConstraint(null, null);
-		metaSolver.addMetaConstraint(viewSchedulingMC);
+		//metaSolver.addMetaConstraint(viewSchedulingMC);
 		viewSchedulingMC.setUsage(vvs);
 
 		final Random rand = new Random(Calendar.getInstance().getTimeInMillis());
@@ -133,15 +134,18 @@ public class TestROSDispatching extends AbstractNodeMain {
 		ConstraintNetworkAnimator animator = new ConstraintNetworkAnimator(ans, 1000, cb){
 			@Override
 			protected long getCurrentTimeInMillis() {
+				
 				return connectedNode.getCurrentTime().totalNsecs()/1000000;
 			}
 		};		
 		FlapForChaosDispatchingFunction[] dfs = new FlapForChaosDispatchingFunction[ROBOTNUMBER];
 		for (int i = 1; i <= ROBOTNUMBER; i++) {
-			dfs[i-1] = new FlapForChaosDispatchingFunction("Robot"+i);
+			dfs[i-1] = new FlapForChaosDispatchingFunction("turtlebot"+i, metaSolver, connectedNode);
 		}
 		animator.addDispatchingFunctions(ans, dfs);
-		tea.setConstraintNetworkAnimator(animator);
+		//tea.setConstraintNetworkAnimator(animator);
+		
+		
 		
 	}
 

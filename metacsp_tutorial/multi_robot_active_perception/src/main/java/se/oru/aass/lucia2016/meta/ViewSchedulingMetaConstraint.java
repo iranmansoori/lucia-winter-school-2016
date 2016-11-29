@@ -116,10 +116,10 @@ public class ViewSchedulingMetaConstraint extends Schedulable{
 
 
 	private ConstraintNetwork getResolver(TrajectoryEnvelope te1, TrajectoryEnvelope te2) {
-		
+		ViewCoordinator metaSolver = ((ViewCoordinator)this.metaCS);		
 		ViewConstraintSolver viewSolver= (ViewConstraintSolver)this.getGroundSolver();
 		ConstraintNetwork resolver = new ConstraintNetwork(null);
-		VariablePrototype moveOut = new VariablePrototype(viewSolver.getTrajectoryEnvelopeSolver(),"Robot" + te1.getRobotID(),te1.getFootprint(),te1.getRobotID());
+		VariablePrototype moveOut = new VariablePrototype(viewSolver.getTrajectoryEnvelopeSolver(),metaSolver.getPrefix() + te1.getRobotID(),te1.getFootprint(),te1.getRobotID());
 		resolver.addVariable(moveOut);
 		AllenIntervalConstraint before = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before);
 		before.setFrom(te1);			
