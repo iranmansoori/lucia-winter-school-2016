@@ -76,41 +76,21 @@ public class TestROSDispatching extends AbstractNodeMain {
 			subscribeToRobotReportTopic(i);
 		}
 		
-		metaSolver = new ViewCoordinator(0, 10000000, 100);
-		viewSolver = (ViewConstraintSolver)metaSolver.getConstraintSolvers()[0];
-		ans = (ActivityNetworkSolver)((TrajectoryEnvelopeSolver)viewSolver.getConstraintSolvers()[0]).getConstraintSolvers()[0];
-		MetaCSPLogging.setLevel(ViewCoordinator.class, Level.FINEST);
-		metaSolver.setROSNode(connectedNode);
-		metaSolver.setRobotCurrentPose(robotsCurrentPose);
-		
-		
-		
-		
+		setupFromScratch();
+
 		Vector<Pose> cameraPoses = new Vector<Pose>();
 		Vector<Double> infoGains = new Vector<Double>();
 		setCameraPoses(cameraPoses, infoGains);
 		final ViewVariable[] vvs = createViewVariables(cameraPoses, infoGains);
-		
-		
-		//adding the meta-constraints
-		ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, new ViewSelectionValOH());
-		viewSelectionMC.setRobotNumber(3);
-		metaSolver.addMetaConstraint(viewSelectionMC);
-		
-		RobotAllocationMetaConstraint RobotAllocationMC = new RobotAllocationMetaConstraint(null, null);
-		metaSolver.addMetaConstraint(RobotAllocationMC);
-		
-		ViewSchedulingMetaConstraint viewSchedulingMC = new ViewSchedulingMetaConstraint(null, null);
-		//metaSolver.addMetaConstraint(viewSchedulingMC);
-		viewSchedulingMC.setUsage(vvs);
-
-		final Random rand = new Random(Calendar.getInstance().getTimeInMillis());
-		viewSchedulingMC.setValOH(new ValueOrderingH() {
-			@Override
-			public int compare(ConstraintNetwork arg0, ConstraintNetwork arg1) {
-				return (rand.nextInt(3)-1);
+		//seting the usage
+		ViewSchedulingMetaConstraint viewSchedulingMC = null;
+		for (int i = 0; i < metaSolver.getMetaConstraints().length; i++) {			
+			if(metaSolver.getMetaConstraints()[i] instanceof ViewSchedulingMetaConstraint){
+				viewSchedulingMC = (ViewSchedulingMetaConstraint)metaSolver.getMetaConstraints()[i];
+				break;
 			}
-		});
+		}
+		viewSchedulingMC.setUsage(vvs);
 		
 		final TrajectoryEnvelopeAnimator tea = new TrajectoryEnvelopeAnimator("Solution");		
 		InferenceCallback cb = new InferenceCallback() {
@@ -128,6 +108,10 @@ public class TestROSDispatching extends AbstractNodeMain {
 					tea.addExtraGeometries(gms);
 					metaSolver.clearResolvers();
 				}
+				
+				//check whether there something to dispatch
+				//then call the service
+				
 			}
 		};
 		
@@ -149,6 +133,35 @@ public class TestROSDispatching extends AbstractNodeMain {
 		
 	}
 
+	private void setupFromScratch() {
+		metaSolver = new ViewCoordinator(0, 10000000, 100);
+		viewSolver = (ViewConstraintSolver)metaSolver.getConstraintSolvers()[0];
+		ans = (ActivityNetworkSolver)((TrajectoryEnvelopeSolver)viewSolver.getConstraintSolvers()[0]).getConstraintSolvers()[0];
+		MetaCSPLogging.setLevel(ViewCoordinator.class, Level.FINEST);
+		metaSolver.setROSNode(connectedNode);
+		metaSolver.setRobotCurrentPose(robotsCurrentPose);
+				
+		//adding the meta-constraints
+		ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, new ViewSelectionValOH());
+		viewSelectionMC.setRobotNumber(ROBOTNUMBER);
+		metaSolver.addMetaConstraint(viewSelectionMC);
+		
+		RobotAllocationMetaConstraint RobotAllocationMC = new RobotAllocationMetaConstraint(null, null);
+		metaSolver.addMetaConstraint(RobotAllocationMC);
+		
+		ViewSchedulingMetaConstraint viewSchedulingMC = new ViewSchedulingMetaConstraint(null, null);
+		metaSolver.addMetaConstraint(viewSchedulingMC);
+
+		final Random rand = new Random(Calendar.getInstance().getTimeInMillis());
+		viewSchedulingMC.setValOH(new ValueOrderingH() {
+			@Override
+			public int compare(ConstraintNetwork arg0, ConstraintNetwork arg1) {
+				return (rand.nextInt(3)-1);
+			}
+		});
+		
+	}
+	
 	private ViewVariable[] createViewVariables(Vector<Pose> cameraPoses, Vector<Double> infoGains) {
 		ViewVariable[] ret = new ViewVariable[cameraPoses.size()];
 		Variable[] vars = viewSolver.createVariables(cameraPoses.size());
@@ -171,14 +184,15 @@ public class TestROSDispatching extends AbstractNodeMain {
 	}
 
 	private void setCameraPoses(Vector<Pose> cameraPoses, Vector<Double> infoGains) {
-		cameraPoses.add(new Pose(1.05, 4.31, -3.12842980123163));
+		cameraPoses.add(new Pose(1.05, 4.31, -3.12842980123163));		
+		infoGains.add(0.8);
+		cameraPoses.add(new Pose(6.09, 0.82, 0.551774602413026));
 		infoGains.add(0.8);
 		cameraPoses.add(new Pose(3.55, 2.96, -1.51838576694655));
 		infoGains.add(0.8);
 		cameraPoses.add(new Pose(3.06, 0.72, 0.551774602413026));
 		infoGains.add(0.8);
-		cameraPoses.add(new Pose(6.09, 0.82, 0.551774602413026));
-		infoGains.add(0.8);
+
 	}
 
 	private void subscribeToRobotReportTopic(final int i) {

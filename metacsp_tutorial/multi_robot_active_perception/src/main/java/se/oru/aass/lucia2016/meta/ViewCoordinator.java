@@ -162,7 +162,8 @@ public class ViewCoordinator extends MetaConstraintSolver{
 				vv.getTrajectoryEnvelope().getSymbolicVariableActivity().setComponent(prefix + rc.getRobotId());
 				robotToVewvariable.put(rc.getRobotId(), vv);
 			}
-		}		
+		}
+		HashMap<Integer, Vector<Pose>> robToPathPoses = new HashMap<Integer, Vector<Pose>>();
 		if(connectedNode == null){
 			for (Integer rid : robotToVewvariable.keySet()) {
 				Trajectory trajRobot1 = new Trajectory(robotToPath.get(rid));
@@ -191,7 +192,6 @@ public class ViewCoordinator extends MetaConstraintSolver{
 		}
 		else{
 			HashMap<Integer, Boolean> robToPathStatus = new HashMap<Integer, Boolean>();
-			HashMap<Integer, Vector<Pose>> robToPathPoses = new HashMap<Integer, Vector<Pose>>();
 			for (Integer rid : robotToVewvariable.keySet()) {				
 				ViewVariable vv = robotToVewvariable.get(rid);
 				
@@ -241,6 +241,38 @@ public class ViewCoordinator extends MetaConstraintSolver{
 			}
 		}
 	
+		
+		//get the move away path from ROS service
+		HashMap<Integer, Vector<Pose>> robToMoveAwayPoses = new HashMap<Integer, Vector<Pose>>();
+		if(connectedNode != null){
+			HashMap<Integer, Boolean> robToPathStatus = new HashMap<Integer, Boolean>();			
+			for (Variable v :  metaValue.getVariables()) {
+				if (v instanceof VariablePrototype) {
+					// 	Parameters for real instantiation: the first is the component itself, the second is
+					//third is the robot ID				
+					int robotId = (Integer)((VariablePrototype) v).getParameters()[2];
+					robToPathStatus.put(robotId, false);
+					Pose startPose = robToPathPoses.get(robotId).lastElement();
+					synchronized (semaphore) {
+						PathPlanFactory.getRobotPathPlanFromROSSerive(robToPathStatus, robToMoveAwayPoses, connectedNode, robotId, 
+							Convertor.getPoseStamped(startPose, connectedNode), 
+							Convertor.getPoseStamped(getMoveAwayParkingPose(robotId), connectedNode));
+					}
+				}
+			}			
+			while (true) {
+				int counter = 0;
+				for (Integer r : robToPathStatus.keySet()) {
+					if(robToPathStatus.get(r))
+						counter++;
+					
+				}
+				if(counter == robToPathStatus.size())
+					break;					
+			}			
+		}
+		
+		
 		//Make real variables from variable prototypes
 		//this is for moveOut Code
 		for (Variable v :  metaValue.getVariables()) {
@@ -248,7 +280,7 @@ public class ViewCoordinator extends MetaConstraintSolver{
 				// 	Parameters for real instantiation: the first is the component itself, the second is
 				//first argument is the component
 				//second arguement is footprint
-				//third is the robot ID
+				//third is the robot ID				
 				String component = (String)((VariablePrototype) v).getParameters()[0];
 				Polygon footprint = (Polygon)((VariablePrototype) v).getParameters()[1];
 				int robotId = (Integer)((VariablePrototype) v).getParameters()[2];
@@ -256,7 +288,13 @@ public class ViewCoordinator extends MetaConstraintSolver{
 				moveOutTE.setFootprint(footprint);
 				moveOutTE.setRobotID(robotId);
 				moveOutTE.setMarking("path");
-				Trajectory moveOutTrajectory = new Trajectory(getTrajectory(robotId));				
+				Trajectory moveOutTrajectory = null;
+				if(connectedNode == null){
+					moveOutTrajectory = new Trajectory(getTrajectory(robotId));
+				}
+				else{
+					moveOutTrajectory = new Trajectory(robToMoveAwayPoses.get(robotId).toArray(new Pose[robToMoveAwayPoses.get(robotId).size()]));
+				}
 				moveOutTE.setTrajectory(moveOutTrajectory);
 				metaValue.addSubstitution((VariablePrototype)v, moveOutTE);
 				viewSchedulingMC.setUsage(moveOutTE);
@@ -282,10 +320,18 @@ public class ViewCoordinator extends MetaConstraintSolver{
 
 
 
+	private Pose getMoveAwayParkingPose(int robotID) {
+		if(robotID == 1) 
+			return new Pose(0.42, 4.30, 0.0);
+		else if(robotID == 2)
+			return new Pose(5.44, 3.68, 0.0);
+		else
+			return new Pose(6.35,3.84, 0.0);
+	}
+
+
 	private String getTrajectory(int robotID) {
-		//1 4.42, 4.30
-		//2 5.44, 3.68
-		//3 6.35,3.84
+ 
 		if(robotID == 1) 
 			return "paths/rid1_task1.path";
 		else if(robotID == 2)

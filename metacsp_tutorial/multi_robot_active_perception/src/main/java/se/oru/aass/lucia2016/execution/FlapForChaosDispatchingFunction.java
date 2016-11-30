@@ -121,8 +121,7 @@ public class FlapForChaosDispatchingFunction extends DispatchingFunction {
 				}
 			}.start();
 		}
-		else{//call ROS service to send the robot
-			
+		else{//call ROS service to send the robot			
 			//get the trajectory envelope belongs to the paths, and send the last pose to the sendGoal Service
 			TrajectoryEnvelopeSolver teSolver = ((ViewConstraintSolver)this.metaSolver.getConstraintSolvers()[0]).getTrajectoryEnvelopeSolver();
 			Variable[] vars = teSolver.getVariables();
@@ -146,9 +145,7 @@ public class FlapForChaosDispatchingFunction extends DispatchingFunction {
 		request.setX(x);
 		request.setY(y);
 		request.setTheta(theta);
-		
 		serviceClient.call(request, new ServiceResponseListener<sendGoalResponse>() {
-
 			@Override
 			public void onSuccess(sendGoalResponse arg0) {
 				setExecuting(true);					
