@@ -16,6 +16,7 @@ import org.metacsp.multi.spatial.DE9IM.PolygonalDomain;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 //import org.metacsp.multi.spatioTemporal.paths.Pose;
 import org.metacsp.multi.spatioTemporal.paths.Trajectory;
+import org.metacsp.multi.spatioTemporal.paths.TrajectoryEnvelope;
 import org.metacsp.multi.spatioTemporal.paths.TrajectoryEnvelopeSolver;
 import org.metacsp.sensing.ConstraintNetworkAnimator;
 import org.metacsp.sensing.InferenceCallback;
@@ -93,10 +94,9 @@ public class TestROSDispatching extends AbstractNodeMain {
 		viewSchedulingMC.setUsage(vvs);
 		
 		final TrajectoryEnvelopeAnimator tea = new TrajectoryEnvelopeAnimator("Solution");		
-		InferenceCallback cb = new InferenceCallback() {
-			
+		InferenceCallback cb = new InferenceCallback() {			
 			@Override
-			public void doInference(long timeNow) {
+			public void doInference(long timeNow) {				
 				metaSolver.backtrack(); 			
 				if (metaSolver.getAddedResolvers().length > 0) {
 					tea.setTrajectoryEnvelopes(viewSolver.getTrajectoryEnvelopeSolver().getConstraintNetwork());
@@ -108,17 +108,31 @@ public class TestROSDispatching extends AbstractNodeMain {
 					tea.addExtraGeometries(gms);
 					metaSolver.clearResolvers();
 				}
-				
 				//check whether there something to dispatch
 				//then call the service
+				Variable[] tes = viewSolver.getTrajectoryEnvelopeSolver().getVariables();
+				boolean hasAllFinished = true;
+				for (int i = 0; i < vvs.length; i++) {
+					TrajectoryEnvelope te = (TrajectoryEnvelope)tes[i];
+					if(te.getRobotID() != -1){//this means that the te belongs to a chosen view
+						if(te.getTemporalVariable().getLET() > connectedNode.getCurrentTime().totalNsecs()/1000000)
+							hasAllFinished = false;
+							
+					}
+				}
+				if(hasAllFinished){
+					hasAllFinished = false;
+					setupFromScratch();
+					//call ROS service
+					//set the usage
+				}
 				
 			}
 		};
 		
 		ConstraintNetworkAnimator animator = new ConstraintNetworkAnimator(ans, 1000, cb){
 			@Override
-			protected long getCurrentTimeInMillis() {
-				
+			protected long getCurrentTimeInMillis() {				
 				return connectedNode.getCurrentTime().totalNsecs()/1000000;
 			}
 		};		
@@ -127,6 +141,7 @@ public class TestROSDispatching extends AbstractNodeMain {
 			dfs[i-1] = new FlapForChaosDispatchingFunction("turtlebot"+i, metaSolver, connectedNode);
 		}
 		animator.addDispatchingFunctions(ans, dfs);
+		
 		//tea.setConstraintNetworkAnimator(animator);
 		
 		
