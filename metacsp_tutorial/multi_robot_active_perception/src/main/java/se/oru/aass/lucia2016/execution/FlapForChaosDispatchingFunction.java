@@ -127,6 +127,7 @@ public class FlapForChaosDispatchingFunction extends DispatchingFunction {
 			Variable[] vars = teSolver.getVariables();
 			for (int i = 0; i < vars.length; i++) {
 				TrajectoryEnvelope te = (TrajectoryEnvelope)vars[i];
+				if(te.getRobotID() == -1) continue;
 				if(te.getSymbolicVariableActivity().equals(act)){
 					Pose vvPose = te.getTrajectory().getPose()[te.getTrajectory().getPose().length - 1];
 					sendGoal(vvPose.getX(), vvPose.getY(), vvPose.getTheta());

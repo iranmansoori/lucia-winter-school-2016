@@ -48,8 +48,8 @@
   <build_depend>services</build_depend>
   <build_depend>lucia_services</build_depend>
   <build_depend>rosjava_messages</build_depend>
-
-
+  <build_depend>uos_active_perception_msgs</build_depend>
+  <run_depend>uos_active_perception_msgs</run_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

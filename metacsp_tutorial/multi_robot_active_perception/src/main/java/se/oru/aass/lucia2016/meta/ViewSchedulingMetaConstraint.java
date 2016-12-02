@@ -20,6 +20,7 @@ import org.metacsp.multi.spatial.DE9IM.GeometricShapeDomain;
 import org.metacsp.multi.spatial.DE9IM.GeometricShapeVariable;
 import org.metacsp.multi.spatioTemporal.paths.Trajectory;
 import org.metacsp.multi.spatioTemporal.paths.TrajectoryEnvelope;
+import org.metacsp.multi.spatioTemporal.paths.TrajectoryEnvelopeSolver;
 
 
 import se.oru.aass.lucia2016.multi.ViewConstraintSolver;
@@ -42,8 +43,8 @@ public class ViewSchedulingMetaConstraint extends Schedulable{
 		if(peak[0] instanceof ViewVariable && peak[1] instanceof ViewVariable){
 			ViewVariable vv1 = (ViewVariable)peak[0];
 			ViewVariable vv2 = (ViewVariable)peak[1];
-			if (vv1.getTrajectoryEnvelope().getRobotID() == vv2.getTrajectoryEnvelope().getRobotID()) return false;
-			
+			if(vv1.getTrajectoryEnvelope().getRobotID() == -1 || vv2.getTrajectoryEnvelope().getRobotID() == -1) return false;
+			if (vv1.getTrajectoryEnvelope().getRobotID() == vv2.getTrajectoryEnvelope().getRobotID()) return false;			
 			if(checkSpatialInterstion(vv1.getTrajectoryEnvelope().getEnvelopeVariable(), vv2.getFoV()))
 				return true;
 			if(checkSpatialInterstion(vv1.getFoV(), vv2.getTrajectoryEnvelope().getEnvelopeVariable()))
@@ -52,9 +53,10 @@ public class ViewSchedulingMetaConstraint extends Schedulable{
 				return false;			
 					
 		}
-		else if(peak[0] instanceof ViewVariable && peak[1] instanceof TrajectoryEnvelope){
+		else if(peak[0] instanceof ViewVariable && peak[1] instanceof TrajectoryEnvelope){			
 			ViewVariable vv1 = (ViewVariable)peak[0];
 			TrajectoryEnvelope vv2 = (TrajectoryEnvelope)peak[1];
+			if(vv1.getTrajectoryEnvelope().getRobotID() == -1 || vv2.getRobotID() == -1) return false;
 			if (vv1.getTrajectoryEnvelope().getRobotID() == vv2.getRobotID()) return false;			
 			if(checkSpatialInterstion(vv1.getFoV(), vv2.getEnvelopeVariable()))
 				return true;
@@ -65,6 +67,7 @@ public class ViewSchedulingMetaConstraint extends Schedulable{
 		else if(peak[0] instanceof TrajectoryEnvelope && peak[1] instanceof ViewVariable){
 			ViewVariable vv1 = (ViewVariable)peak[1];
 			TrajectoryEnvelope vv2 = (TrajectoryEnvelope)peak[0];
+			if(vv1.getTrajectoryEnvelope().getRobotID() == -1 || vv2.getRobotID() == -1) return false;
 			if (vv1.getTrajectoryEnvelope().getRobotID() == vv2.getRobotID()) return false;			
 			if(checkSpatialInterstion(vv1.getFoV(), vv2.getEnvelopeVariable()))
 				return true;
@@ -100,16 +103,17 @@ public class ViewSchedulingMetaConstraint extends Schedulable{
 		}
 		else te1 = (TrajectoryEnvelope)vv1;
 		if(vv2 instanceof ViewVariable) {
-			te2 = ((ViewVariable)vv2).getTrajectoryEnvelope();
+			te2 = ((ViewVariable)vv2).getTrajectoryEnvelope();			
 		}
 		else te2 = (TrajectoryEnvelope)vv2;
+		
+		//moveOut
 		
 		ConstraintNetwork resolver1 = getResolver(te1, te2);
 		ConstraintNetwork resolver2 = getResolver(te2, te1);
 
 		ret.add(resolver1);
 		ret.add(resolver2);
-		
 		
 		return ret.toArray(new ConstraintNetwork[ret.size()]);
 	}
@@ -119,25 +123,54 @@ public class ViewSchedulingMetaConstraint extends Schedulable{
 		ViewCoordinator metaSolver = ((ViewCoordinator)this.metaCS);		
 		ViewConstraintSolver viewSolver= (ViewConstraintSolver)this.getGroundSolver();
 		ConstraintNetwork resolver = new ConstraintNetwork(null);
-		VariablePrototype moveOut = new VariablePrototype(viewSolver.getTrajectoryEnvelopeSolver(),metaSolver.getPrefix() + te1.getRobotID(),te1.getFootprint(),te1.getRobotID());
-		resolver.addVariable(moveOut);
+
 		AllenIntervalConstraint before = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before);
 		before.setFrom(te1);			
 		before.setTo(te2);
 		resolver.addConstraint(before);
 
-		AllenIntervalConstraint beforeMoveout = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before);
-		beforeMoveout.setFrom(moveOut);			
-		beforeMoveout.setTo(te2);
-		resolver.addConstraint(beforeMoveout);
-		
-		AllenIntervalConstraint senseBeforeMoveAway = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before);
-		senseBeforeMoveAway.setFrom(te1);
-		senseBeforeMoveAway.setTo(moveOut);
-		resolver.addConstraint(senseBeforeMoveAway);	
+		TrajectoryEnvelope moveOutTE = getMoveOut(te1.getRobotID());
+		if(moveOutTE == null){
+			VariablePrototype moveOut = new VariablePrototype(viewSolver.getTrajectoryEnvelopeSolver(), metaSolver.getPrefix() + te1.getRobotID(),te1.getFootprint(),te1.getRobotID());
+			resolver.addVariable(moveOut);					
+
+			AllenIntervalConstraint beforeMoveout = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before);
+			beforeMoveout.setFrom(moveOut);			
+			beforeMoveout.setTo(te2);
+			resolver.addConstraint(beforeMoveout);
+			
+			AllenIntervalConstraint senseBeforeMoveAway = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before);
+			senseBeforeMoveAway.setFrom(te1);
+			senseBeforeMoveAway.setTo(moveOut);
+			resolver.addConstraint(senseBeforeMoveAway);				
+		}else{
+			
+			AllenIntervalConstraint beforeMoveout = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before);
+			beforeMoveout.setFrom(moveOutTE);			
+			beforeMoveout.setTo(te2);
+			resolver.addConstraint(beforeMoveout);
+			
+			AllenIntervalConstraint senseBeforeMoveOut = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before);
+			senseBeforeMoveOut.setFrom(te1);
+			senseBeforeMoveOut.setTo(moveOutTE);
+			resolver.addConstraint(senseBeforeMoveOut);				
+			
+		}
 		
 		return resolver;
 		
+	}
+
+	private TrajectoryEnvelope getMoveOut(int robotID) {
+		TrajectoryEnvelopeSolver teSolver = ((ViewConstraintSolver)this.getGroundSolver()).getTrajectoryEnvelopeSolver();
+		Variable[] tes = teSolver.getVariables();
+		for (int i = 0; i < tes.length; i++) {
+			TrajectoryEnvelope te = (TrajectoryEnvelope)tes[i];
+			if(te.getMarking() != null && te.getMarking().equals("moveOut") && te.getRobotID() == robotID){
+				return te;
+			}			
+		}		
+		return null;
 	}
 
 	@Override

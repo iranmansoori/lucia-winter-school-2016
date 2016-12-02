@@ -1,6 +1,8 @@
 package se.oru.aass.lucia2016.test;
+import geometry_msgs.PoseStamped;
 import geometry_msgs.PoseWithCovarianceStamped;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Random;
@@ -24,10 +26,15 @@ import org.metacsp.time.Bounds;
 import org.metacsp.utility.UI.TrajectoryEnvelopeAnimator;
 import org.metacsp.utility.logging.MetaCSPLogging;
 import org.metacsp.utility.timelinePlotting.TimelinePublisher;
+import org.ros.exception.RemoteException;
+import org.ros.exception.RosRuntimeException;
+import org.ros.exception.ServiceNotFoundException;
 import org.ros.message.MessageListener;
 import org.ros.namespace.GraphName;
 import org.ros.node.AbstractNodeMain;
 import org.ros.node.ConnectedNode;
+import org.ros.node.service.ServiceClient;
+import org.ros.node.service.ServiceResponseListener;
 import org.ros.node.topic.Subscriber;
 
 
@@ -41,7 +48,9 @@ import se.oru.aass.lucia2016.meta.ViewSelectionMetaConstraint;
 import se.oru.aass.lucia2016.meta.ViewSelectionValOH;
 import se.oru.aass.lucia2016.multi.ViewConstraintSolver;
 import se.oru.aass.lucia2016.multi.ViewVariable;
+import se.oru.aass.lucia2016.utility.Convertor;
 import se.oru.aass.lucia2016.utility.FootPrintFactory;
+
 
 
 public class TestROSDispatching extends AbstractNodeMain {
@@ -121,6 +130,7 @@ public class TestROSDispatching extends AbstractNodeMain {
 					}
 				}
 				if(hasAllFinished){
+					System.out.println("All already dispatched actions have been finished!");
 					hasAllFinished = false;
 					setupFromScratch();
 					//call ROS service
@@ -157,7 +167,8 @@ public class TestROSDispatching extends AbstractNodeMain {
 		metaSolver.setRobotCurrentPose(robotsCurrentPose);
 				
 		//adding the meta-constraints
-		ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, new ViewSelectionValOH());
+		ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, new ViewSelectionValOH());	
+		//ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, null);		
 		viewSelectionMC.setRobotNumber(ROBOTNUMBER);
 		metaSolver.addMetaConstraint(viewSelectionMC);
 		
@@ -220,4 +231,46 @@ public class TestROSDispatching extends AbstractNodeMain {
 			}
 		}, 10);	
 	}
+	
+//	public static void getNextBestView(final HashMap<Integer, Boolean> robToPathStatus, final HashMap<Integer, Vector<Pose>> robToPathPoses, ConnectedNode connectedNode, final int robotId, PoseStamped start, PoseStamped end) {
+//		
+//		ConnectedNode node = connectedNode;
+//		//final Vector<Pose> ret = new Vector<Pose>();
+//		ServiceClient<GetObservationCameraPoses, GetPlanResponse> serviceClient;
+//		try {			
+//			serviceClient = node.newServiceClient("/turtlebot" + robotId + "/move_base/make_plan", GetPlan._TYPE);			
+//
+//		} catch (ServiceNotFoundException e) {
+//			throw new RosRuntimeException(e);
+//		}
+//		final GetPlanRequest request = serviceClient.newMessage();
+//		request.setStart(start);
+//		request.setGoal(end);
+//		
+//		serviceClient.call(request, new ServiceResponseListener<GetPlanResponse>() {
+//			
+//			@Override
+//			public void onSuccess(GetPlanResponse response) {
+//				metaCSPLogger.info("successfully called path planner service! for the robot " + robotId);
+//				ArrayList<PoseStamped> poses = (ArrayList<PoseStamped>) response.getPlan().getPoses();
+//				//System.out.println("-----------------------------");
+//				Vector<Pose> ps = new Vector<Pose>();
+//				for (int i = 0; i < poses.size(); i++) {
+//					//System.out.println(poses.get(i).getPose().getPosition().getX() + " " + poses.get(i).getPose().getPosition().getY());
+//					ps.add(new Pose(poses.get(i).getPose().getPosition().getX(), poses.get(i).getPose().getPosition().getY(), 
+//							Convertor.getOrientation(poses.get(i).getPose().getOrientation())));
+//				}
+//				robToPathPoses.put(robotId, ps);
+//				robToPathStatus.put(robotId, true);
+//				//System.out.println("-----------------------------");
+//			}
+//
+//			@Override
+//			public void onFailure(RemoteException arg0) {
+//				metaCSPLogger.info("failed to call service!");
+//			}
+//		});		
+//		
+//	}
+
 }

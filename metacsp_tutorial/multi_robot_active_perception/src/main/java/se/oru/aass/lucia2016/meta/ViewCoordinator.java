@@ -163,7 +163,6 @@ public class ViewCoordinator extends MetaConstraintSolver{
 				robotToVewvariable.put(rc.getRobotId(), vv);
 			}
 		}
-		HashMap<Integer, Vector<Pose>> robToPathPoses = new HashMap<Integer, Vector<Pose>>();
 		if(connectedNode == null){
 			for (Integer rid : robotToVewvariable.keySet()) {
 				Trajectory trajRobot1 = new Trajectory(robotToPath.get(rid));
@@ -173,7 +172,7 @@ public class ViewCoordinator extends MetaConstraintSolver{
 				moveinTE.setFootprint(vv.getTrajectoryEnvelope().getFootprint());
 				moveinTE.setTrajectory(trajRobot1);
 				moveinTE.setRobotID(rid);
-				moveinTE.setMarking("path");
+				moveinTE.setMarking("moveIn");
 				if(viewSchedulingMC != null)
 					viewSchedulingMC.setUsage(moveinTE);
 				moveinTE.getSymbolicVariableActivity().setSymbolicDomain("MoveIn");				
@@ -191,6 +190,7 @@ public class ViewCoordinator extends MetaConstraintSolver{
 			}
 		}
 		else{
+			HashMap<Integer, Vector<Pose>> robToPathPoses = new HashMap<Integer, Vector<Pose>>();
 			HashMap<Integer, Boolean> robToPathStatus = new HashMap<Integer, Boolean>();
 			for (Integer rid : robotToVewvariable.keySet()) {				
 				ViewVariable vv = robotToVewvariable.get(rid);
@@ -221,7 +221,7 @@ public class ViewCoordinator extends MetaConstraintSolver{
 				moveinTE.setFootprint(vv.getTrajectoryEnvelope().getFootprint());
 				moveinTE.setTrajectory(trajRobot1);
 				moveinTE.setRobotID(rid);
-				moveinTE.setMarking("path");
+				moveinTE.setMarking("moveIn");
 				if(viewSchedulingMC != null)
 					viewSchedulingMC.setUsage(moveinTE);
 				moveinTE.getSymbolicVariableActivity().setSymbolicDomain("MoveIn");
@@ -252,7 +252,14 @@ public class ViewCoordinator extends MetaConstraintSolver{
 					//third is the robot ID				
 					int robotId = (Integer)((VariablePrototype) v).getParameters()[2];
 					robToPathStatus.put(robotId, false);
-					Pose startPose = robToPathPoses.get(robotId).lastElement();
+					Pose startPose = null;
+					Variable[] allvars = solver.getVariables();
+					for (int j = 0; j < allvars.length; j++) {						
+						if(((ViewVariable)allvars[j]).getTrajectoryEnvelope().getRobotID() == robotId){
+							startPose = ((ViewVariable)allvars[j]).getTrajectoryEnvelope().getTrajectory().getPose()[((ViewVariable)allvars[j]).getTrajectoryEnvelope().getTrajectory().getPose().length - 1]; 
+							break;
+						}
+					}					
 					synchronized (semaphore) {
 						PathPlanFactory.getRobotPathPlanFromROSSerive(robToPathStatus, robToMoveAwayPoses, connectedNode, robotId, 
 							Convertor.getPoseStamped(startPose, connectedNode), 
@@ -285,9 +292,10 @@ public class ViewCoordinator extends MetaConstraintSolver{
 				Polygon footprint = (Polygon)((VariablePrototype) v).getParameters()[1];
 				int robotId = (Integer)((VariablePrototype) v).getParameters()[2];
 				TrajectoryEnvelope moveOutTE = (TrajectoryEnvelope)solver.getTrajectoryEnvelopeSolver().createVariable(component);
+				moveOutTE.getSymbolicVariableActivity().setSymbolicDomain("MoveOut");	
 				moveOutTE.setFootprint(footprint);
 				moveOutTE.setRobotID(robotId);
-				moveOutTE.setMarking("path");
+				moveOutTE.setMarking("moveOut");
 				Trajectory moveOutTrajectory = null;
 				if(connectedNode == null){
 					moveOutTrajectory = new Trajectory(getTrajectory(robotId));
@@ -313,7 +321,7 @@ public class ViewCoordinator extends MetaConstraintSolver{
 			clonedConstraint.setScope(newScope);
 			metaValue.removeConstraint(con);
 			metaValue.addConstraint(clonedConstraint);
-		}
+		}		
 		return true;
 	}
 	
