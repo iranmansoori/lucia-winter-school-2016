@@ -44,7 +44,7 @@ dependencies {
   compile 'org.ros.rosjava_messages:visualization_msgs:1.10.+'
   /* Example of a local subproject dependency */ 
   compile 'org.ros.rosjava_messages:services:0.0.0'
-  //compile 'org.ros.rosjava_messages:uos_active_perception_msgs:0.0.0'
+  compile 'org.ros.rosjava_messages:uos_active_perception_msgs:0.0.0'
 
 }
 
