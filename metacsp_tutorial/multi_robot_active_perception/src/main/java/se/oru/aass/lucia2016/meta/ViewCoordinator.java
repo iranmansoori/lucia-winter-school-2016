@@ -40,6 +40,7 @@ import se.oru.aass.lucia2016.multi.ViewConstraint;
 import se.oru.aass.lucia2016.multi.ViewConstraintSolver;
 import se.oru.aass.lucia2016.multi.ViewVariable;
 import se.oru.aass.lucia2016.utility.Convertor;
+import se.oru.aass.lucia2016.utility.ParkingPoseLib;
 import se.oru.aass.lucia2016.utility.PathPlanFactory;
 
 public class ViewCoordinator extends MetaConstraintSolver{
@@ -99,10 +100,15 @@ public class ViewCoordinator extends MetaConstraintSolver{
 					AllenIntervalConstraint tc = (AllenIntervalConstraint)tcons[j];
 					if(tc.getTypes()[0].equals(AllenIntervalConstraint.Type.Meets)){
 						TrajectoryEnvelope from = (TrajectoryEnvelope)tc.getFrom();
-						Constraint during = solver.getTrajectoryEnvelopeSolver().getConstraintNetwork().getConstraints(from, from)[0];
+						TrajectoryEnvelope to = (TrajectoryEnvelope)tc.getTo();
+						to.setRobotID(-1);
+						
+						Constraint[] unaruCons = solver.getTrajectoryEnvelopeSolver().getConstraintNetwork().getConstraints(from, from);
+						for (int k = 0; k < unaruCons.length; k++) {
+							solver.getTrajectoryEnvelopeSolver().removeConstraint(unaruCons[k]);
+						}
 						ViewSchedulingMC.removeUsage(from);
-						solver.getTrajectoryEnvelopeSolver().removeConstraint(tc);
-						solver.getTrajectoryEnvelopeSolver().removeConstraint(during);
+						solver.getTrajectoryEnvelopeSolver().removeConstraint(tc);						
 						solver.getTrajectoryEnvelopeSolver().removeVariable(from);						
 					}
 						
@@ -110,17 +116,28 @@ public class ViewCoordinator extends MetaConstraintSolver{
 			}
 		}
 		
-		//TODO:remove setUsage for moveIn 
-		
-		Vector<Variable> trajectoryEnvToRemove = new Vector<Variable>();
-		
+		Vector<Variable> trajectoryEnvToRemove = new Vector<Variable>();		
 		for (Variable v : metaValue.getVariables()) {
 			if (!metaVariable.containsVariable(v)) {
 				if (v instanceof VariablePrototype) {
 					Variable vReal = metaValue.getSubstitution((VariablePrototype)v);
 					if (vReal != null) {
-						Constraint during = solver.getTrajectoryEnvelopeSolver().getConstraintNetwork().getConstraints(vReal, vReal)[0];						
-						solver.getTrajectoryEnvelopeSolver().removeConstraint(during);
+												
+						///////////////////////////////////////////////////////////////
+						//this is wrong, this part removing a constraint added by another resolver
+						//the reason for that is MoveAway constraint sometimes does not added by resolver, and fetch y an exciting one
+						Constraint[] cn = solver.getTrajectoryEnvelopeSolver().getConstraints();
+						for (int i = 0; i < cn.length; i++) {
+							if(cn[i] instanceof AllenIntervalConstraint){
+								AllenIntervalConstraint rc = (AllenIntervalConstraint)cn[i];
+								if(rc.getFrom().equals(vReal) || rc.getTo().equals(vReal))
+									solver.getTrajectoryEnvelopeSolver().removeConstraint(rc);
+							}
+						}
+						/////////////////////////////////////////////////////////////
+						//if the part above is deleted these two lines should be added
+//						Constraint during = solver.getTrajectoryEnvelopeSolver().getConstraintNetwork().getConstraints(vReal, vReal)[0];
+//						solver.getTrajectoryEnvelopeSolver().removeConstraint(during);
 						ViewSchedulingMC.removeUsage((TrajectoryEnvelope)vReal);
 						trajectoryEnvToRemove.add(vReal);
 					}
@@ -237,6 +254,13 @@ public class ViewCoordinator extends MetaConstraintSolver{
 						//refineTrajectoryEnvelopes(moveinTE,((ViewVariable)vars[j]).getFoV());
 					}
 				}
+				long timeNow = connectedNode.getCurrentTime().totalNsecs()/1000000;
+				AllenIntervalConstraint release = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Release, new Bounds(timeNow, timeNow));
+				release.setFrom(moveinTE);
+				release.setTo(moveinTE);
+				solver.getTrajectoryEnvelopeSolver().addConstraint(release);
+				
+				
 
 			}
 		}
@@ -263,7 +287,7 @@ public class ViewCoordinator extends MetaConstraintSolver{
 					synchronized (semaphore) {
 						PathPlanFactory.getRobotPathPlanFromROSSerive(robToPathStatus, robToMoveAwayPoses, connectedNode, robotId, 
 							Convertor.getPoseStamped(startPose, connectedNode), 
-							Convertor.getPoseStamped(getMoveAwayParkingPose(robotId), connectedNode));
+							Convertor.getPoseStamped(ParkingPoseLib.getMoveAwayParkingPose(robotId), connectedNode));
 					}
 				}
 			}			
@@ -328,14 +352,7 @@ public class ViewCoordinator extends MetaConstraintSolver{
 
 
 
-	private Pose getMoveAwayParkingPose(int robotID) {
-		if(robotID == 1) 
-			return new Pose(0.42, 4.30, 0.0);
-		else if(robotID == 2)
-			return new Pose(5.44, 3.68, 0.0);
-		else
-			return new Pose(6.35,3.84, 0.0);
-	}
+
 
 
 	private String getTrajectory(int robotID) {

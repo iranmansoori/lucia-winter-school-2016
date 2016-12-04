@@ -102,7 +102,34 @@ public class TestROSDispatching extends AbstractNodeMain {
 		//setCameraPoses(cameraPoses, infoGains);
 		//vvs = createViewVariables(cameraPoses, infoGains);
 		
-		setupFromScratch();
+		
+		metaSolver = new ViewCoordinator(0, 10000000, 100);
+		viewSolver = (ViewConstraintSolver)metaSolver.getConstraintSolvers()[0];
+		ans = (ActivityNetworkSolver)((TrajectoryEnvelopeSolver)viewSolver.getConstraintSolvers()[0]).getConstraintSolvers()[0];
+		MetaCSPLogging.setLevel(ViewCoordinator.class, Level.FINEST);
+		metaSolver.setROSNode(connectedNode);
+		metaSolver.setRobotCurrentPose(robotsCurrentPose);
+				
+		//adding the meta-constraints
+		ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, new ViewSelectionValOH());	
+		//ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, null);		
+		viewSelectionMC.setRobotNumber(ROBOTNUMBER);
+		metaSolver.addMetaConstraint(viewSelectionMC);
+		
+		RobotAllocationMetaConstraint RobotAllocationMC = new RobotAllocationMetaConstraint(null, null);
+		metaSolver.addMetaConstraint(RobotAllocationMC);
+		
+		ViewSchedulingMetaConstraint viewSchedulingMC = new ViewSchedulingMetaConstraint(null, null);
+		metaSolver.addMetaConstraint(viewSchedulingMC);
+
+		final Random rand = new Random(Calendar.getInstance().getTimeInMillis());
+		viewSchedulingMC.setValOH(new ValueOrderingH() {
+			@Override
+			public int compare(ConstraintNetwork arg0, ConstraintNetwork arg1) {
+				return (rand.nextInt(3)-1);
+			}
+		});
+		
 		synchronized (semaphore) {
 			getNextBestView(cameraPoses, infoGains);
 		}
@@ -135,7 +162,7 @@ public class TestROSDispatching extends AbstractNodeMain {
 					System.out.println(">>>>> All already dispatched actions have been finished!!!!!!");
 					hasAllFinished = false;
 					poseReceived = false;
-					setupFromScratch();
+					setupFromScratch(this, tea);
 					cameraPoses.clear();
 					infoGains.clear();
 					synchronized (semaphore) {
@@ -160,9 +187,6 @@ public class TestROSDispatching extends AbstractNodeMain {
 		animator.addDispatchingFunctions(ans, dfs);
 		
 		tea.setConstraintNetworkAnimator(animator);
-		
-		
-		
 	}
 	
 	private void visualizationTEAnimator(TrajectoryEnvelopeAnimator tea) {
@@ -185,7 +209,7 @@ public class TestROSDispatching extends AbstractNodeMain {
 		tea.addExtraGeometries(gms);				
 	}
 
-	private void setupFromScratch() {
+	private void setupFromScratch(InferenceCallback cb, TrajectoryEnvelopeAnimator tea) {
 		metaSolver = new ViewCoordinator(0, 10000000, 100);
 		viewSolver = (ViewConstraintSolver)metaSolver.getConstraintSolvers()[0];
 		ans = (ActivityNetworkSolver)((TrajectoryEnvelopeSolver)viewSolver.getConstraintSolvers()[0]).getConstraintSolvers()[0];
@@ -212,7 +236,20 @@ public class TestROSDispatching extends AbstractNodeMain {
 				return (rand.nextInt(3)-1);
 			}
 		});
-		
+		//////////////////////////////////////////////////
+		//setup dispatching
+		ConstraintNetworkAnimator animator = new ConstraintNetworkAnimator(ans, 1000, cb){
+			@Override
+			protected long getCurrentTimeInMillis() {				
+				return connectedNode.getCurrentTime().totalNsecs()/1000000;
+			}
+		};		
+		FlapForChaosDispatchingFunction[] dfs = new FlapForChaosDispatchingFunction[ROBOTNUMBER];
+		for (int i = 1; i <= ROBOTNUMBER; i++) {
+			dfs[i-1] = new FlapForChaosDispatchingFunction("turtlebot"+i, metaSolver, connectedNode);
+		}
+		animator.addDispatchingFunctions(ans, dfs);		
+		tea.setConstraintNetworkAnimator(animator);
 	}
 	
 	private  Vector<ViewVariable> createViewVariables(Vector<Pose> cameraPoses, Vector<Float> infoGains) {
@@ -281,7 +318,7 @@ public class TestROSDispatching extends AbstractNodeMain {
 		final GetObservationCameraPosesRequest request = serviceClient.newMessage();
 		request.setOmitCvm(true);
 		request.setSampleSize(100);
-		request.setRaySkip((float)0.8);
+		request.setRaySkip((float)0.8);		
 		request.setRoi(Lucia16RegionOfInterest.getBoundnigBoxes(connectedNode));
 		
 		serviceClient.call(request, new ServiceResponseListener<GetObservationCameraPosesResponse>() {

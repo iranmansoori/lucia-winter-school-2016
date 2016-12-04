@@ -69,7 +69,7 @@ public class ViewSelectionMetaConstraint extends MetaConstraint{
 		ConstraintNetwork conflict = metaVariable.getConstraintNetwork();		
 		Vector<ConstraintNetwork> ret = new Vector<ConstraintNetwork>();
 		Variable[] vars = conflict.getVariables();
-		
+		if(vars.length < robotNumber ) robotNumber = vars.length;
 		Combination c = new Combination(vars.length , robotNumber);		
 		HashMap<Integer, ViewVariable> indexToVar = new HashMap<Integer, ViewVariable>();
 		for (int i = 0; i < vars.length; i++) {
