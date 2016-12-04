@@ -51,6 +51,7 @@ import se.oru.aass.lucia2016.multi.ViewConstraintSolver;
 import se.oru.aass.lucia2016.multi.ViewVariable;
 import se.oru.aass.lucia2016.utility.Convertor;
 import se.oru.aass.lucia2016.utility.FootPrintFactory;
+import se.oru.aass.lucia2016.utility.Lucia16RegionOfInterest;
 import se.oru.aass.lucia2016.utility.PathPlanFactory;
 import uos_active_perception_msgs.GetObservationCameraPoses;
 import uos_active_perception_msgs.GetObservationCameraPosesRequest;
@@ -60,14 +61,16 @@ import uos_active_perception_msgs.GetObservationCameraPosesResponse;
 
 public class TestROSDispatching extends AbstractNodeMain {
 
+	protected static final float INFOGAIN_THRESHOLD = (float) 0.5;
 	private static Logger metaCSPLogger = MetaCSPLogging.getLogger(TestROSDispatching.class);
 	private static ConnectedNode connectedNode;
 	private final String nodeName = "lucia_meta_csp_lecture";
 	private ViewCoordinator metaSolver = null;
-	private ViewConstraintSolver viewSolver = null;
+	private static ViewConstraintSolver viewSolver = null;
 	private ActivityNetworkSolver ans = null;
 	private HashMap<Integer, geometry_msgs.Pose> robotsCurrentPose = new HashMap<Integer, geometry_msgs.Pose>();
-	
+	private Object semaphore = new Object();
+	private boolean poseReceived = false; 
 	private int ROBOTNUMBER = 3; 
 	
 	@Override
@@ -92,44 +95,35 @@ public class TestROSDispatching extends AbstractNodeMain {
 			subscribeToRobotReportTopic(i);
 		}
 		
+		final Vector<Pose> cameraPoses = new Vector<Pose>();
+		final Vector<Float> infoGains = new Vector<Float>();
 		
-		getNextBestView();
+		//offline setting for test
+		//setCameraPoses(cameraPoses, infoGains);
+		//vvs = createViewVariables(cameraPoses, infoGains);
+		
 		setupFromScratch();
-
-		Vector<Pose> cameraPoses = new Vector<Pose>();
-		Vector<Double> infoGains = new Vector<Double>();
-		setCameraPoses(cameraPoses, infoGains);
-		final ViewVariable[] vvs = createViewVariables(cameraPoses, infoGains);
-		//seting the usage
-		ViewSchedulingMetaConstraint viewSchedulingMC = null;
-		for (int i = 0; i < metaSolver.getMetaConstraints().length; i++) {			
-			if(metaSolver.getMetaConstraints()[i] instanceof ViewSchedulingMetaConstraint){
-				viewSchedulingMC = (ViewSchedulingMetaConstraint)metaSolver.getMetaConstraints()[i];
-				break;
-			}
+		synchronized (semaphore) {
+			getNextBestView(cameraPoses, infoGains);
 		}
-		viewSchedulingMC.setUsage(vvs);
 		
+
 		final TrajectoryEnvelopeAnimator tea = new TrajectoryEnvelopeAnimator("Solution");		
 		InferenceCallback cb = new InferenceCallback() {			
 			@Override
 			public void doInference(long timeNow) {				
-				metaSolver.backtrack(); 			
+				if(poseReceived)
+					metaSolver.backtrack(); 
+				
 				if (metaSolver.getAddedResolvers().length > 0) {
-					tea.setTrajectoryEnvelopes(viewSolver.getTrajectoryEnvelopeSolver().getConstraintNetwork());
-					//TODO: this has to be changed to those only is chosen
-					Geometry[] gms = new Geometry[vvs.length]; 
-					for (int i = 0; i < vvs.length; i++) {
-						gms[i] = ((PolygonalDomain)vvs[i].getFoV().getDomain()).getGeometry();
-					}
-					tea.addExtraGeometries(gms);
+					visualizationTEAnimator(tea);
 					metaSolver.clearResolvers();
 				}
 				//check whether there something to dispatch
 				//then call the service
 				Variable[] tes = viewSolver.getTrajectoryEnvelopeSolver().getVariables();
 				boolean hasAllFinished = true;
-				for (int i = 0; i < vvs.length; i++) {
+				for (int i = 0; i < tes.length; i++) {
 					TrajectoryEnvelope te = (TrajectoryEnvelope)tes[i];
 					if(te.getRobotID() != -1){//this means that the te belongs to a chosen view
 						if(te.getTemporalVariable().getLET() > connectedNode.getCurrentTime().totalNsecs()/1000000)
@@ -137,15 +131,20 @@ public class TestROSDispatching extends AbstractNodeMain {
 							
 					}
 				}
-				if(hasAllFinished){
-					System.out.println("All already dispatched actions have been finished!");
+				if(poseReceived && hasAllFinished){
+					System.out.println(">>>>> All already dispatched actions have been finished!!!!!!");
 					hasAllFinished = false;
+					poseReceived = false;
 					setupFromScratch();
-					//call ROS service
-					//set the usage
-				}
-				
+					cameraPoses.clear();
+					infoGains.clear();
+					synchronized (semaphore) {
+						getNextBestView(cameraPoses, infoGains);
+					}
+				}	
 			}
+
+
 		};
 		
 		ConstraintNetworkAnimator animator = new ConstraintNetworkAnimator(ans, 1000, cb){
@@ -160,10 +159,30 @@ public class TestROSDispatching extends AbstractNodeMain {
 		}
 		animator.addDispatchingFunctions(ans, dfs);
 		
-		//tea.setConstraintNetworkAnimator(animator);
+		tea.setConstraintNetworkAnimator(animator);
 		
 		
 		
+	}
+	
+	private void visualizationTEAnimator(TrajectoryEnvelopeAnimator tea) {
+		tea.setTrajectoryEnvelopes(viewSolver.getTrajectoryEnvelopeSolver().getConstraintNetwork());
+		Variable[] vars = viewSolver.getVariables();
+		Vector<ViewVariable> vvs = new Vector<ViewVariable>();
+		for (int i = 0; i < vars.length; i++) {
+			if(vars[i] instanceof ViewVariable){
+				ViewVariable vv = ((ViewVariable)vars[i]);
+				if(viewSolver.getViewConstraintByVariable(vv) != null){
+					vvs.add(vv);
+				}			
+										
+			}
+		}		
+		Geometry[] gms = new Geometry[vvs.size()]; 
+		for (int i1 = 0; i1 < vvs.size(); i1++) {
+			gms[i1] = ((PolygonalDomain)vvs.get(i1).getFoV().getDomain()).getGeometry();
+		}
+		tea.addExtraGeometries(gms);				
 	}
 
 	private void setupFromScratch() {
@@ -196,12 +215,12 @@ public class TestROSDispatching extends AbstractNodeMain {
 		
 	}
 	
-	private ViewVariable[] createViewVariables(Vector<Pose> cameraPoses, Vector<Double> infoGains) {
-		ViewVariable[] ret = new ViewVariable[cameraPoses.size()];
+	private  Vector<ViewVariable> createViewVariables(Vector<Pose> cameraPoses, Vector<Float> infoGains) {
+		Vector<ViewVariable> ret = new Vector<ViewVariable>();
 		Variable[] vars = viewSolver.createVariables(cameraPoses.size());
 		for (int i = 0; i < vars.length; i++) {
 			ViewVariable vv1 = (ViewVariable)vars[i];
-			ret[i] = vv1;
+			ret.add(vv1);			
 			vv1.getTrajectoryEnvelope().getSymbolicVariableActivity().setSymbolicDomain("Sense");
 			Trajectory trajRobot1 = new Trajectory(new Pose[] {cameraPoses.get(i)});
 			vv1.getTrajectoryEnvelope().setFootprint(FootPrintFactory.getTurtlebotFootprint());
@@ -212,20 +231,30 @@ public class TestROSDispatching extends AbstractNodeMain {
 			duration1.setFrom(vv1);
 			duration1.setTo(vv1);
 			viewSolver.addConstraint(duration1);
-		}				
+		}
+		
+		//seting the usage
+		ViewSchedulingMetaConstraint viewSchedulingMC = null;
+		for (int i = 0; i < metaSolver.getMetaConstraints().length; i++) {			
+			if(metaSolver.getMetaConstraints()[i] instanceof ViewSchedulingMetaConstraint){
+				viewSchedulingMC = (ViewSchedulingMetaConstraint)metaSolver.getMetaConstraints()[i];
+				break;
+			}
+		}
+		viewSchedulingMC.setUsage(ret.toArray(new ViewVariable[ret.size()]));
 		return ret;
 		
 	}
 
-	private void setCameraPoses(Vector<Pose> cameraPoses, Vector<Double> infoGains) {
+	private void setCameraPoses(Vector<Pose> cameraPoses, Vector<Float> infoGains) {
 		cameraPoses.add(new Pose(1.05, 4.31, -3.12842980123163));		
-		infoGains.add(0.8);
+		infoGains.add((float)0.8);
 		cameraPoses.add(new Pose(6.09, 0.82, 0.551774602413026));
-		infoGains.add(0.8);
+		infoGains.add((float)0.8);
 		cameraPoses.add(new Pose(3.55, 2.96, -1.51838576694655));
-		infoGains.add(0.8);
+		infoGains.add((float)0.8);
 		cameraPoses.add(new Pose(3.06, 0.72, 0.551774602413026));
-		infoGains.add(0.8);
+		infoGains.add((float)0.8);
 
 	}
 
@@ -240,7 +269,7 @@ public class TestROSDispatching extends AbstractNodeMain {
 		}, 10);	
 	}
 	
-	public static void getNextBestView() {
+	public void getNextBestView(final Vector<Pose> cameraPoses, final Vector<Float> infoGains) {
 		
 		ServiceClient<GetObservationCameraPosesRequest, GetObservationCameraPosesResponse> serviceClient;
 		try {			
@@ -253,6 +282,7 @@ public class TestROSDispatching extends AbstractNodeMain {
 		request.setOmitCvm(true);
 		request.setSampleSize(100);
 		request.setRaySkip((float)0.8);
+		request.setRoi(Lucia16RegionOfInterest.getBoundnigBoxes(connectedNode));
 		
 		serviceClient.call(request, new ServiceResponseListener<GetObservationCameraPosesResponse>() {
 			
@@ -260,11 +290,16 @@ public class TestROSDispatching extends AbstractNodeMain {
 			public void onSuccess(GetObservationCameraPosesResponse response) {
 				metaCSPLogger.info("successfully called get camera poses service! for the robot ");
 				ArrayList<geometry_msgs.Pose> poses = (ArrayList<geometry_msgs.Pose>) response.getCameraPoses();
-				float[] infogains = response.getInformationGains();
-				for (int i = 0; i < infogains.length; i++) {
-					System.out.println(poses.get(i).getPosition().getX() + " " + poses.get(i).getPosition().getY());
-					System.out.println(infogains[i]);
+				float[] ig = response.getInformationGains();
+				for (int i = 0; i < ig.length; i++) {
+					if(ig[i] > INFOGAIN_THRESHOLD){
+						System.out.println(poses.get(i).getPosition().getX() + " " + poses.get(i).getPosition().getY());
+						cameraPoses.add(new Pose(poses.get(i).getPosition().getX(), poses.get(i).getPosition().getY(), Convertor.getOrientation(poses.get(i).getOrientation())));
+						infoGains.add(ig[i]);
+					}
 				}
+				createViewVariables(cameraPoses, infoGains);
+				poseReceived = true;
 			}
 
 			@Override
