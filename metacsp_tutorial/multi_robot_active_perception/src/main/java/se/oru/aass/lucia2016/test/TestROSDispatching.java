@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Random;
 import java.util.Vector;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.metacsp.framework.ConstraintNetwork;
 import org.metacsp.framework.ValueOrderingH;
@@ -50,12 +51,17 @@ import se.oru.aass.lucia2016.multi.ViewConstraintSolver;
 import se.oru.aass.lucia2016.multi.ViewVariable;
 import se.oru.aass.lucia2016.utility.Convertor;
 import se.oru.aass.lucia2016.utility.FootPrintFactory;
+import se.oru.aass.lucia2016.utility.PathPlanFactory;
+import uos_active_perception_msgs.GetObservationCameraPoses;
+import uos_active_perception_msgs.GetObservationCameraPosesRequest;
+import uos_active_perception_msgs.GetObservationCameraPosesResponse;
 
 
 
 public class TestROSDispatching extends AbstractNodeMain {
 
-	private ConnectedNode connectedNode;
+	private static Logger metaCSPLogger = MetaCSPLogging.getLogger(TestROSDispatching.class);
+	private static ConnectedNode connectedNode;
 	private final String nodeName = "lucia_meta_csp_lecture";
 	private ViewCoordinator metaSolver = null;
 	private ViewConstraintSolver viewSolver = null;
@@ -86,6 +92,8 @@ public class TestROSDispatching extends AbstractNodeMain {
 			subscribeToRobotReportTopic(i);
 		}
 		
+		
+		getNextBestView();
 		setupFromScratch();
 
 		Vector<Pose> cameraPoses = new Vector<Pose>();
@@ -232,45 +240,39 @@ public class TestROSDispatching extends AbstractNodeMain {
 		}, 10);	
 	}
 	
-//	public static void getNextBestView(final HashMap<Integer, Boolean> robToPathStatus, final HashMap<Integer, Vector<Pose>> robToPathPoses, ConnectedNode connectedNode, final int robotId, PoseStamped start, PoseStamped end) {
-//		
-//		ConnectedNode node = connectedNode;
-//		//final Vector<Pose> ret = new Vector<Pose>();
-//		ServiceClient<GetObservationCameraPoses, GetPlanResponse> serviceClient;
-//		try {			
-//			serviceClient = node.newServiceClient("/turtlebot" + robotId + "/move_base/make_plan", GetPlan._TYPE);			
-//
-//		} catch (ServiceNotFoundException e) {
-//			throw new RosRuntimeException(e);
-//		}
-//		final GetPlanRequest request = serviceClient.newMessage();
-//		request.setStart(start);
-//		request.setGoal(end);
-//		
-//		serviceClient.call(request, new ServiceResponseListener<GetPlanResponse>() {
-//			
-//			@Override
-//			public void onSuccess(GetPlanResponse response) {
-//				metaCSPLogger.info("successfully called path planner service! for the robot " + robotId);
-//				ArrayList<PoseStamped> poses = (ArrayList<PoseStamped>) response.getPlan().getPoses();
-//				//System.out.println("-----------------------------");
-//				Vector<Pose> ps = new Vector<Pose>();
-//				for (int i = 0; i < poses.size(); i++) {
-//					//System.out.println(poses.get(i).getPose().getPosition().getX() + " " + poses.get(i).getPose().getPosition().getY());
-//					ps.add(new Pose(poses.get(i).getPose().getPosition().getX(), poses.get(i).getPose().getPosition().getY(), 
-//							Convertor.getOrientation(poses.get(i).getPose().getOrientation())));
-//				}
-//				robToPathPoses.put(robotId, ps);
-//				robToPathStatus.put(robotId, true);
-//				//System.out.println("-----------------------------");
-//			}
-//
-//			@Override
-//			public void onFailure(RemoteException arg0) {
-//				metaCSPLogger.info("failed to call service!");
-//			}
-//		});		
-//		
-//	}
+	public static void getNextBestView() {
+		
+		ServiceClient<GetObservationCameraPosesRequest, GetObservationCameraPosesResponse> serviceClient;
+		try {			
+			serviceClient = connectedNode.newServiceClient("/turtlebot1/get_observation_camera_poses_reachable", GetObservationCameraPoses._TYPE);			
+
+		} catch (ServiceNotFoundException e) {
+			throw new RosRuntimeException(e);
+		}
+		final GetObservationCameraPosesRequest request = serviceClient.newMessage();
+		request.setOmitCvm(true);
+		request.setSampleSize(100);
+		request.setRaySkip((float)0.8);
+		
+		serviceClient.call(request, new ServiceResponseListener<GetObservationCameraPosesResponse>() {
+			
+			@Override
+			public void onSuccess(GetObservationCameraPosesResponse response) {
+				metaCSPLogger.info("successfully called get camera poses service! for the robot ");
+				ArrayList<geometry_msgs.Pose> poses = (ArrayList<geometry_msgs.Pose>) response.getCameraPoses();
+				float[] infogains = response.getInformationGains();
+				for (int i = 0; i < infogains.length; i++) {
+					System.out.println(poses.get(i).getPosition().getX() + " " + poses.get(i).getPosition().getY());
+					System.out.println(infogains[i]);
+				}
+			}
+
+			@Override
+			public void onFailure(RemoteException arg0) {
+				metaCSPLogger.info("failed to call service!");
+			}
+		});		
+		
+	}
 
 }
