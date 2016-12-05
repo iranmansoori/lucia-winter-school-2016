@@ -87,7 +87,7 @@ public class FlapForChaosDispatchingFunction extends DispatchingFunction {
 	}
 
 	public void finishCurrentActivity() {
-		System.out.println(">>>>>>>>>>>>>>>>>>> (" + this.component + ") FINISHED!!!");
+		System.out.println(">>>>>>>>>>>>>>>>>>> (" + this.component + ") has finished " + currentAct);
 		this.finish(currentAct);
 		currentAct = null;
 		setExecuting(false);
@@ -95,8 +95,9 @@ public class FlapForChaosDispatchingFunction extends DispatchingFunction {
 	
 	@Override
 	public boolean skip(SymbolicVariableActivity act) {
-		// TODO Auto-generated method stub
+		if (act.getSymbolicVariable().getSymbols()[0].equals("Parking")) return true;
 		return false;
+
 	}
 	
 	
@@ -116,6 +117,7 @@ public class FlapForChaosDispatchingFunction extends DispatchingFunction {
 						try { Thread.sleep(10); }
 						catch (InterruptedException e) { e.printStackTrace(); }
 					}
+					System.out.println(">>>>>>>>>>>>>>>>>>> (" + component + ") has finished " + theAct);
 					thisDF.finish(theAct);
 					executingActs.remove(theAct);
 				}

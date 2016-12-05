@@ -10,6 +10,7 @@ import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.metacsp.framework.Constraint;
 import org.metacsp.framework.ConstraintNetwork;
 import org.metacsp.framework.ValueOrderingH;
 import org.metacsp.framework.Variable;
@@ -23,10 +24,12 @@ import org.metacsp.multi.spatioTemporal.paths.TrajectoryEnvelope;
 import org.metacsp.multi.spatioTemporal.paths.TrajectoryEnvelopeSolver;
 import org.metacsp.sensing.ConstraintNetworkAnimator;
 import org.metacsp.sensing.InferenceCallback;
+import org.metacsp.time.APSPSolver;
 import org.metacsp.time.Bounds;
 import org.metacsp.utility.UI.TrajectoryEnvelopeAnimator;
 import org.metacsp.utility.logging.MetaCSPLogging;
 import org.metacsp.utility.timelinePlotting.TimelinePublisher;
+import org.metacsp.utility.timelinePlotting.TimelineVisualizer;
 import org.ros.exception.RemoteException;
 import org.ros.exception.RosRuntimeException;
 import org.ros.exception.ServiceNotFoundException;
@@ -71,7 +74,7 @@ public class TestROSDispatching extends AbstractNodeMain {
 	private HashMap<Integer, geometry_msgs.Pose> robotsCurrentPose = new HashMap<Integer, geometry_msgs.Pose>();
 	private Object semaphore = new Object();
 	private boolean poseReceived = false; 
-	private int ROBOTNUMBER = 3; 
+	private int NUMBEROFROBOTS = 3; 
 	
 	@Override
 	public GraphName getDefaultNodeName() {
@@ -91,7 +94,7 @@ public class TestROSDispatching extends AbstractNodeMain {
 		}
 		
 		//subscribe to robot pose topic
-		for (int i = 1; i <= ROBOTNUMBER; i++) {
+		for (int i = 1; i <= NUMBEROFROBOTS; i++) {
 			subscribeToRobotReportTopic(i);
 		}
 		
@@ -109,11 +112,13 @@ public class TestROSDispatching extends AbstractNodeMain {
 		MetaCSPLogging.setLevel(ViewCoordinator.class, Level.FINEST);
 		metaSolver.setROSNode(connectedNode);
 		metaSolver.setRobotCurrentPose(robotsCurrentPose);
+		long timeNow = connectedNode.getCurrentTime().totalNsecs()/1000000;
+		metaSolver.setTimeNow(timeNow);
 				
 		//adding the meta-constraints
 		ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, new ViewSelectionValOH());	
 		//ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, null);		
-		viewSelectionMC.setRobotNumber(ROBOTNUMBER);
+		viewSelectionMC.setRobotNumber(NUMBEROFROBOTS);
 		metaSolver.addMetaConstraint(viewSelectionMC);
 		
 		RobotAllocationMetaConstraint RobotAllocationMC = new RobotAllocationMetaConstraint(null, null);
@@ -135,7 +140,7 @@ public class TestROSDispatching extends AbstractNodeMain {
 		}
 		
 
-		final TrajectoryEnvelopeAnimator tea = new TrajectoryEnvelopeAnimator("Solution");		
+		//final TrajectoryEnvelopeAnimator tea = new TrajectoryEnvelopeAnimator("Solution");		
 		InferenceCallback cb = new InferenceCallback() {			
 			@Override
 			public void doInference(long timeNow) {				
@@ -143,32 +148,49 @@ public class TestROSDispatching extends AbstractNodeMain {
 					metaSolver.backtrack(); 
 				
 				if (metaSolver.getAddedResolvers().length > 0) {
-					visualizationTEAnimator(tea);
+					//visualizationTEAnimator(tea);
+					metaCSPLogger.info("== SOLUTION ==");
+					for (ConstraintNetwork cn : metaSolver.getAddedResolvers()) {
+						for (Constraint con : cn.getConstraints()) {
+							metaCSPLogger.info("\t" + con);
+						}
+					}
+					metaCSPLogger.info("== END SOLUTION ==");
+					//show timeline
+					TimelinePublisher tp = new TimelinePublisher(ans.getConstraintNetwork(), new Bounds(0,60000), true, "Time", "turtlebot1", "turtlebot2", "turtlebot3");
+					TimelineVisualizer tv = new TimelineVisualizer(tp);
+					tv.startAutomaticUpdate(1000);
+					//tp.publish(false, false);
+					
+					//ConstraintNetwork.draw(viewSolver.getTrajectoryEnvelopeSolver().getConstraintNetwork());
+					ConstraintNetwork.saveConstraintNetwork(viewSolver.getTrajectoryEnvelopeSolver().getConstraintNetwork(), "testingLucia.cn");
+					
+					
 					metaSolver.clearResolvers();
 				}
-				//check whether there something to dispatch
-				//then call the service
-				Variable[] tes = viewSolver.getTrajectoryEnvelopeSolver().getVariables();
-				boolean hasAllFinished = true;
-				for (int i = 0; i < tes.length; i++) {
-					TrajectoryEnvelope te = (TrajectoryEnvelope)tes[i];
-					if(te.getRobotID() != -1){//this means that the te belongs to a chosen view
-						if(te.getTemporalVariable().getLET() > connectedNode.getCurrentTime().totalNsecs()/1000000)
-							hasAllFinished = false;
-							
-					}
-				}
-				if(poseReceived && hasAllFinished){
-					System.out.println(">>>>> All already dispatched actions have been finished!!!!!!");
-					hasAllFinished = false;
-					poseReceived = false;
-					setupFromScratch(this, tea);
-					cameraPoses.clear();
-					infoGains.clear();
-					synchronized (semaphore) {
-						getNextBestView(cameraPoses, infoGains);
-					}
-				}	
+//				//check whether there something to dispatch
+//				//then call the service
+//				Variable[] tes = viewSolver.getTrajectoryEnvelopeSolver().getVariables();
+//				boolean hasAllFinished = true;
+//				for (int i = 0; i < tes.length; i++) {
+//					TrajectoryEnvelope te = (TrajectoryEnvelope)tes[i];
+//					if(te.getRobotID() != -1){//this means that the te belongs to a chosen view
+//						if(te.getTemporalVariable().getLET() > connectedNode.getCurrentTime().totalNsecs()/1000000)
+//							hasAllFinished = false;
+//							
+//					}
+//				}
+//				if(poseReceived && hasAllFinished){
+//					System.out.println(">>>>> All already dispatched actions have been finished!!!!!!");
+//					hasAllFinished = false;
+//					poseReceived = false;
+//					setupFromScratch(this, tea);
+//					cameraPoses.clear();
+//					infoGains.clear();
+//					synchronized (semaphore) {
+//						getNextBestView(cameraPoses, infoGains);
+//					}
+//				}	
 			}
 
 
@@ -180,13 +202,13 @@ public class TestROSDispatching extends AbstractNodeMain {
 				return connectedNode.getCurrentTime().totalNsecs()/1000000;
 			}
 		};		
-		FlapForChaosDispatchingFunction[] dfs = new FlapForChaosDispatchingFunction[ROBOTNUMBER];
-		for (int i = 1; i <= ROBOTNUMBER; i++) {
+		FlapForChaosDispatchingFunction[] dfs = new FlapForChaosDispatchingFunction[NUMBEROFROBOTS];
+		for (int i = 1; i <= NUMBEROFROBOTS; i++) {
 			dfs[i-1] = new FlapForChaosDispatchingFunction("turtlebot"+i, metaSolver, connectedNode);
 		}
 		animator.addDispatchingFunctions(ans, dfs);
 		
-		tea.setConstraintNetworkAnimator(animator);
+		//tea.setConstraintNetworkAnimator(animator);
 	}
 	
 	private void visualizationTEAnimator(TrajectoryEnvelopeAnimator tea) {
@@ -216,11 +238,13 @@ public class TestROSDispatching extends AbstractNodeMain {
 		MetaCSPLogging.setLevel(ViewCoordinator.class, Level.FINEST);
 		metaSolver.setROSNode(connectedNode);
 		metaSolver.setRobotCurrentPose(robotsCurrentPose);
+		long timeNow = connectedNode.getCurrentTime().totalNsecs()/1000000;
+		metaSolver.setTimeNow(timeNow);
 				
 		//adding the meta-constraints
 		ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, new ViewSelectionValOH());	
 		//ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, null);		
-		viewSelectionMC.setRobotNumber(ROBOTNUMBER);
+		viewSelectionMC.setRobotNumber(NUMBEROFROBOTS);
 		metaSolver.addMetaConstraint(viewSelectionMC);
 		
 		RobotAllocationMetaConstraint RobotAllocationMC = new RobotAllocationMetaConstraint(null, null);
@@ -244,8 +268,8 @@ public class TestROSDispatching extends AbstractNodeMain {
 				return connectedNode.getCurrentTime().totalNsecs()/1000000;
 			}
 		};		
-		FlapForChaosDispatchingFunction[] dfs = new FlapForChaosDispatchingFunction[ROBOTNUMBER];
-		for (int i = 1; i <= ROBOTNUMBER; i++) {
+		FlapForChaosDispatchingFunction[] dfs = new FlapForChaosDispatchingFunction[NUMBEROFROBOTS];
+		for (int i = 1; i <= NUMBEROFROBOTS; i++) {
 			dfs[i-1] = new FlapForChaosDispatchingFunction("turtlebot"+i, metaSolver, connectedNode);
 		}
 		animator.addDispatchingFunctions(ans, dfs);		
@@ -264,7 +288,7 @@ public class TestROSDispatching extends AbstractNodeMain {
 			vv1.getTrajectoryEnvelope().setTrajectory(trajRobot1);
 			vv1.setFOVCoordinates(FootPrintFactory.getFoVCoordinates());
 			vv1.setInfoGain(infoGains.get(i));
-			AllenIntervalConstraint duration1 = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Duration, new Bounds(10000,15000));
+			AllenIntervalConstraint duration1 = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Duration, new Bounds(10000,APSPSolver.INF));
 			duration1.setFrom(vv1);
 			duration1.setTo(vv1);
 			viewSolver.addConstraint(duration1);
@@ -330,7 +354,7 @@ public class TestROSDispatching extends AbstractNodeMain {
 				float[] ig = response.getInformationGains();
 				for (int i = 0; i < ig.length; i++) {
 					if(ig[i] > INFOGAIN_THRESHOLD){
-						System.out.println(poses.get(i).getPosition().getX() + " " + poses.get(i).getPosition().getY());
+						System.out.println(i +": " + poses.get(i).getPosition().getX() + " " + poses.get(i).getPosition().getY());
 						cameraPoses.add(new Pose(poses.get(i).getPosition().getX(), poses.get(i).getPosition().getY(), Convertor.getOrientation(poses.get(i).getOrientation())));
 						infoGains.add(ig[i]);
 					}
