@@ -73,18 +73,8 @@ public class ViewSchedulingMetaConstraint extends MetaConstraint {
 			Activity[] groundVars = activities.toArray(new Activity[activities.size()]);
 			for (int i = 0; i < groundVars.length-1; i++) {
 				for (int j = i+1; j < groundVars.length; j++) {
-					Bounds bi = null;
-					Bounds bj = null;
-					if (groundVars[i] instanceof ViewVariable && groundVars[j] instanceof ViewVariable) {
-						bi = new Bounds(groundVars[i].getTemporalVariable().getEST(), groundVars[i].getTemporalVariable().getEET());
-						bj = new Bounds(groundVars[j].getTemporalVariable().getEST(), groundVars[j].getTemporalVariable().getEET());	
-//						bi = new Bounds(groundVars[i].getTemporalVariable().getEST(), groundVars[i].getTemporalVariable().getLET());
-//						bj = new Bounds(groundVars[j].getTemporalVariable().getEST(), groundVars[j].getTemporalVariable().getLET());						
-					}
-					else {
-						bi = new Bounds(groundVars[i].getTemporalVariable().getEST(), groundVars[i].getTemporalVariable().getEET());
-						bj = new Bounds(groundVars[j].getTemporalVariable().getEST(), groundVars[j].getTemporalVariable().getEET());						
-					}
+					Bounds bi = new Bounds(groundVars[i].getTemporalVariable().getEST(), groundVars[i].getTemporalVariable().getEET());
+					Bounds bj = new Bounds(groundVars[j].getTemporalVariable().getEST(), groundVars[j].getTemporalVariable().getEET());						
 					if (bi.intersectStrict(bj) != null && isConflicting(new Activity[] {groundVars[i], groundVars[j]})) {
 						ConstraintNetwork cn = new ConstraintNetwork(null);
 						cn.addVariable(groundVars[i].getVariable());
@@ -205,8 +195,11 @@ public class ViewSchedulingMetaConstraint extends MetaConstraint {
 				}
 			}					
 			if (vv1SeesVv2 && vv2SeesVv1) {
-				for (ConstraintNetwork cn : allResolvers) {
-					if (cn.getConstraints().length > 1) {
+				for (ConstraintNetwork cn : allResolvers) {					
+					if (cn.getConstraints().length > 1) {						
+						ret.add(cn);
+					}
+					else if (cn.getConstraints()[0].getScope()[0] instanceof TrajectoryEnvelope && cn.getConstraints()[0].getScope()[1] instanceof TrajectoryEnvelope) {						
 						ret.add(cn);
 					}
 				}
@@ -261,18 +254,21 @@ public class ViewSchedulingMetaConstraint extends MetaConstraint {
 		// OR
 		//vv1.footprint BEFORE vv2.footprint
 
+		
 		ConstraintNetwork resolver1 = new ConstraintNetwork(null);
+		
 		AllenIntervalConstraint vv1FPBeforeVv2FP = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before);
 		vv1FPBeforeVv2FP.setFrom(vv1);			
 		vv1FPBeforeVv2FP.setTo(vv2);
-		resolver1.addConstraint(vv1FPBeforeVv2FP);
+		resolver1.addConstraint(vv1FPBeforeVv2FP);		
 		ret.add(resolver1);
+		
 
 		ConstraintNetwork resolver2 = new ConstraintNetwork(null);
 		TrajectoryEnvelope moveOutTE = getMoveOut(vv2.getTrajectoryEnvelope().getRobotID());
 		
 		if(moveOutTE == null){
-			VariablePrototype moveOut = new VariablePrototype(viewSolver.getTrajectoryEnvelopeSolver(), metaSolver.getPrefix() + vv2.getTrajectoryEnvelope().getRobotID(),vv2.getTrajectoryEnvelope().getFootprint(),vv2.getTrajectoryEnvelope().getRobotID());
+			VariablePrototype moveOut = new VariablePrototype(viewSolver.getTrajectoryEnvelopeSolver(), metaSolver.getPrefix() + vv2.getTrajectoryEnvelope().getRobotID(),vv2.getTrajectoryEnvelope().getFootprint(),vv2.getTrajectoryEnvelope().getRobotID(), false);
 			resolver2.addVariable(moveOut);					
 
 			AllenIntervalConstraint beforeMoveout = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before);
@@ -284,15 +280,15 @@ public class ViewSchedulingMetaConstraint extends MetaConstraint {
 			senseMeetsMoveAway.setFrom(vv2.getTrajectoryEnvelope());
 			senseMeetsMoveAway.setTo(moveOut);
 			resolver2.addConstraint(senseMeetsMoveAway);
+			
 		}
 		else {
 			AllenIntervalConstraint beforeMoveout = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before);
 			beforeMoveout.setFrom(moveOutTE);			
 			beforeMoveout.setTo(vv1.getTrajectoryEnvelope());
-			resolver2.addConstraint(beforeMoveout);
-			
+			resolver2.addConstraint(beforeMoveout);			
 		}
-		
+		ret.add(resolver2);
 		return ret;
 	}
 

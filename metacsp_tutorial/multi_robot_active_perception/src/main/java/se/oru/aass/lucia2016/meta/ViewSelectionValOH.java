@@ -15,12 +15,14 @@ import se.oru.aass.lucia2016.multi.ViewVariable;
 
 public class ViewSelectionValOH extends ValueOrderingH{
 
-	private static double alpha = 0.7;
+	private static double alpha = 0.2;
 	
 	@Override
 	public int compare(ConstraintNetwork arg0, ConstraintNetwork arg1) {
 		Constraint[] cons0 = arg0.getConstraints();
 		Constraint[] cons1 = arg1.getConstraints();
+		
+		
 		
 		Vector<ViewVariable> vvs0 = new Vector<ViewVariable>();
 		Vector<ViewVariable> vvs1 = new Vector<ViewVariable>();
@@ -28,7 +30,7 @@ public class ViewSelectionValOH extends ValueOrderingH{
 			ViewVariable vv0 = (ViewVariable)((ViewConstraint)cons0[i]).getFrom();
 			ViewVariable vv1 = (ViewVariable)((ViewConstraint)cons1[i]).getFrom();
 			vvs0.add(vv0);
-			vvs0.add(vv1);
+			vvs1.add(vv1);
 		}
 		double sumDist0 = getSumDistance(vvs0);
 		double sumDist1 = getSumDistance(vvs1);

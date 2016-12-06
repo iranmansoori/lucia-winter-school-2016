@@ -70,6 +70,7 @@ public class FlapForChaosDispatchingFunction extends DispatchingFunction {
 							//System.out.println(">>>>>>>>>>>>>>>>>> (" + this.+ ") ACTIONLIB SAYS: " + gs.getStatus());
 							if (gs.getStatus() != (byte)1) {
 								finishCurrentActivity();
+								metaCSPLogger.info("EXIT CODE: " + gs.getStatus());
 							}
 						}
 					}
@@ -96,6 +97,7 @@ public class FlapForChaosDispatchingFunction extends DispatchingFunction {
 	@Override
 	public boolean skip(SymbolicVariableActivity act) {
 		if (act.getSymbolicVariable().getSymbols()[0].equals("Parking")) return true;
+		if (act.getSymbolicVariable().getSymbols()[0].equals("Parking2")) return true;
 		return false;
 
 	}

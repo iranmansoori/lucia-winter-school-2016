@@ -105,7 +105,7 @@ public class ViewCoordinator extends MetaConstraintSolver{
 					if(te.getRobotID() == rid){
 						te.setRobotID(-1);
 						te.getSymbolicVariableActivity().setComponent("");
-						if(te.getMarking() != null && (te.getMarking().equals("moveIn") || te.getMarking().equals("parking"))){							
+						if(te.getMarking() != null && (te.getMarking().equals("moveIn") || te.getMarking().equals("parking") ||  te.getMarking().equals("parking2"))){							
 							Constraint[] tcons = solver.getTrajectoryEnvelopeSolver().getConstraintNetwork().getIncidentEdges(te);
 							solver.getTrajectoryEnvelopeSolver().removeConstraints(tcons);
 							trajectoryEnvToRemove.add(te);							
@@ -226,7 +226,7 @@ public class ViewCoordinator extends MetaConstraintSolver{
 				ViewVariable vv = robotToVewvariable.get(rid);
 				//if the current position and the goals are the same
 				if(pathPoses.size() == 0){
-					pathPoses.add(vv.getTrajectoryEnvelope().getTrajectory().getPose()[vv.getTrajectoryEnvelope().getTrajectory().getPose().length - 1]);
+					pathPoses.add(vv.getTrajectoryEnvelope().getTrajectory().getPose()[0]);
 				}
 				Trajectory trajRobot1 = new Trajectory(pathPoses.toArray(new Pose[pathPoses.size()]));
 				TrajectoryEnvelope moveinTE = (TrajectoryEnvelope)solver.getTrajectoryEnvelopeSolver().createVariable(prefix + rid);
@@ -256,13 +256,30 @@ public class ViewCoordinator extends MetaConstraintSolver{
 				solver.getTrajectoryEnvelopeSolver().addConstraint(parkingMeetsMoveIn);
 
 
-				//create a temporal constraint the trajectory and the viewVariable
-				AllenIntervalConstraint moveinMeetsVV = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Meets);
-				moveinMeetsVV.setFrom(moveinTE);
-				moveinMeetsVV.setTo(vv.getTrajectoryEnvelope());
-				solver.getTrajectoryEnvelopeSolver().addConstraint(moveinMeetsVV);
+				//creating parking2 (last parking)
+				TrajectoryEnvelope parking2TE = (TrajectoryEnvelope)solver.getTrajectoryEnvelopeSolver().createVariable(prefix + rid);
+				parking2TE.setFootprint(vv.getTrajectoryEnvelope().getFootprint());				
+				Pose parking2Position = vv.getTrajectoryEnvelope().getTrajectory().getPose()[0];
+				parking2TE.setTrajectory(new Trajectory(new Pose[] {parking2Position}));
+				parking2TE.setRobotID(rid);
+				parking2TE.setMarking("parking2");
+				if(viewSchedulingMC != null)
+					viewSchedulingMC.setUsage(parking2TE);
+				parking2TE.getSymbolicVariableActivity().setSymbolicDomain("Parking2");
 
+				//MoveIn meets Parking2
+				AllenIntervalConstraint moveInMeetsParking2 = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Meets);
+				moveInMeetsParking2.setFrom(moveinTE);
+				moveInMeetsParking2.setTo(parking2TE);
+				solver.getTrajectoryEnvelopeSolver().addConstraint(moveInMeetsParking2);
 				
+				//create a temporal constraint the trajectory and the viewVariable
+				AllenIntervalConstraint parking2MeetsVV = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Meets);
+				parking2MeetsVV.setFrom(parking2TE);
+				parking2MeetsVV.setTo(vv.getTrajectoryEnvelope());
+				solver.getTrajectoryEnvelopeSolver().addConstraint(parking2MeetsVV);
+
+				//Release parking
 				AllenIntervalConstraint release = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Release, new Bounds(timeNow, timeNow));
 				release.setFrom(parkingTE);
 				release.setTo(parkingTE);
@@ -286,7 +303,7 @@ public class ViewCoordinator extends MetaConstraintSolver{
 		if(connectedNode != null){
 			HashMap<Integer, Boolean> robToPathStatus = new HashMap<Integer, Boolean>();			
 			for (Variable v :  metaValue.getVariables()) {
-				if (v instanceof VariablePrototype) {
+				if (v instanceof VariablePrototype) {					
 					// 	Parameters for real instantiation: the first is the component itself, the second is
 					//third is the robot ID				
 					int robotId = (Integer)((VariablePrototype) v).getParameters()[2];
