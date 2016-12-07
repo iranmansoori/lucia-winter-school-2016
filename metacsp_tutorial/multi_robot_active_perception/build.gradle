@@ -48,3 +48,6 @@ dependencies {
 
 }
 
+task deleteHorribleScripts(type: Delete) {
+  delete 'build/scripts'
+}
