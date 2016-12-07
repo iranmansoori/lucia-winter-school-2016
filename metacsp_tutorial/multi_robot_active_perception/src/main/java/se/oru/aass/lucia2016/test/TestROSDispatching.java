@@ -76,47 +76,34 @@ public class TestROSDispatching extends AbstractNodeMain {
 	private HashMap<Integer, geometry_msgs.Pose> robotsCurrentPose = new HashMap<Integer, geometry_msgs.Pose>();
 	private Object semaphore = new Object();
 	private boolean poseReceived = false; 
-	private int NUMBEROFROBOTS = 3; 
+	private static final int NUMBEROFROBOTS = 3; 
 	private boolean solved = false;
+	private ConstraintNetworkAnimator animator = null;
+	private Vector<Pose> cameraPoses = null;
+	private Vector<Float> infoGains = null;
+	private int cycle = 0;
+	private static final long HORIZON = 10000000;
+	private long ORIGIN = 0;
+
 	
 	@Override
 	public GraphName getDefaultNodeName() {
 		return GraphName.of(nodeName);
 	}
 	
-	@Override
-	public void onStart(ConnectedNode cn) {
-		this.connectedNode = cn;
-		
-		while (true) {
-			try {
-				this.connectedNode.getCurrentTime();
-				break;
-			}
-			catch(NullPointerException e) { }
-		}
-		
-		//subscribe to robot pose topic
-		for (int i = 1; i <= NUMBEROFROBOTS; i++) {
-			subscribeToRobotReportTopic(i);
-		}
-		
-		final Vector<Pose> cameraPoses = new Vector<Pose>();
-		final Vector<Float> infoGains = new Vector<Float>();
-		
-		//offline setting for test
-		//setCameraPoses(cameraPoses, infoGains);
-		//vvs = createViewVariables(cameraPoses, infoGains);
-		
-		
-		metaSolver = new ViewCoordinator(0, 10000000, 100);
+	public long getCurrentTime() {
+		return connectedNode.getCurrentTime().totalNsecs()/TEMPORAL_RESOLUTION;
+	}
+	
+	private void setupSolvers() {
+		ORIGIN = getCurrentTime();
+		metaSolver = new ViewCoordinator(ORIGIN, ORIGIN+HORIZON, 100);
 		viewSolver = (ViewConstraintSolver)metaSolver.getConstraintSolvers()[0];
 		ans = (ActivityNetworkSolver)((TrajectoryEnvelopeSolver)viewSolver.getConstraintSolvers()[0]).getConstraintSolvers()[0];
 		MetaCSPLogging.setLevel(ViewCoordinator.class, Level.FINEST);
 		metaSolver.setROSNode(connectedNode);
 		metaSolver.setRobotCurrentPose(robotsCurrentPose);
-		long timeNow = connectedNode.getCurrentTime().totalNsecs()/1000000;
-		metaSolver.setTimeNow(timeNow);
+		metaSolver.setTimeNow(getCurrentTime());
 				
 		//adding the meta-constraints
 		ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, new ViewSelectionValOH());	
@@ -137,14 +124,14 @@ public class TestROSDispatching extends AbstractNodeMain {
 				return (rand.nextInt(3)-1);
 			}
 		});
-		
-		synchronized (semaphore) {
-			getNextBestView(cameraPoses, infoGains);
-		}
-		
-		
+	}
+	
+	public void setupMonitoring() {
 		//final TrajectoryEnvelopeAnimator tea = new TrajectoryEnvelopeAnimator("Solution");		
-		InferenceCallback cb = new InferenceCallback() {			
+		InferenceCallback cb = new InferenceCallback() {	
+						
+			private int myCycle = cycle++;
+			
 			@Override
 			public void doInference(long timeNow) {
 				if(poseReceived)
@@ -153,7 +140,7 @@ public class TestROSDispatching extends AbstractNodeMain {
 				if (metaSolver.getAddedResolvers().length > 0) {
 					solved = true;
 					//visualizationTEAnimator(tea);
-					metaCSPLogger.info("== SOLUTION ==");
+					metaCSPLogger.info("== SOLUTION at iteration " + myCycle + " ==");
 					for (ConstraintNetwork cn : metaSolver.getAddedResolvers()) {
 						for (Constraint con : cn.getConstraints()) {
 							metaCSPLogger.info("\t" + con);
@@ -167,7 +154,7 @@ public class TestROSDispatching extends AbstractNodeMain {
 					//tp.publish(false, false);
 					
 					//ConstraintNetwork.draw(viewSolver.getTrajectoryEnvelopeSolver().getConstraintNetwork());
-					//ConstraintNetwork.saveConstraintNetwork(viewSolver.getTrajectoryEnvelopeSolver().getConstraintNetwork(), "testingLucia.cn");
+					ConstraintNetwork.saveConstraintNetwork(viewSolver.getTrajectoryEnvelopeSolver().getConstraintNetwork(), "testingLucia" + myCycle + ".cn");
 					metaSolver.clearResolvers();									
 				}
 				
@@ -196,7 +183,10 @@ public class TestROSDispatching extends AbstractNodeMain {
 					System.out.println(">>>>> All already dispatched actions have been finished!!!!!!");
 					solved = false;
 					poseReceived = false;
-					setupFromScratch(this, null);
+//					setupFromScratch(this, null);
+					animator.teardown();
+					setupSolvers();
+					setupMonitoring();
 					cameraPoses.clear();
 					infoGains.clear();
 					synchronized (semaphore) {
@@ -206,10 +196,10 @@ public class TestROSDispatching extends AbstractNodeMain {
 			}
 		};
 		
-		ConstraintNetworkAnimator animator = new ConstraintNetworkAnimator(ans, CONTROL_PERIOD, cb){
+		animator = new ConstraintNetworkAnimator(ans, CONTROL_PERIOD, cb){
 			@Override
 			protected long getCurrentTimeInMillis() {				
-				return connectedNode.getCurrentTime().totalNsecs()/TEMPORAL_RESOLUTION;
+				return getCurrentTime();
 			}
 		};		
 		FlapForChaosDispatchingFunction[] dfs = new FlapForChaosDispatchingFunction[NUMBEROFROBOTS];
@@ -219,6 +209,147 @@ public class TestROSDispatching extends AbstractNodeMain {
 		animator.addDispatchingFunctions(ans, dfs);
 		
 		//tea.setConstraintNetworkAnimator(animator);
+		
+	}
+	
+	@Override
+	public void onStart(ConnectedNode cn) {
+		this.connectedNode = cn;
+		
+		while (true) {
+			try {
+				this.connectedNode.getCurrentTime();
+				break;
+			}
+			catch(NullPointerException e) { }
+		}
+		
+		//subscribe to robot pose topic
+		for (int i = 1; i <= NUMBEROFROBOTS; i++) {
+			subscribeToRobotReportTopic(i);
+		}
+		
+		cameraPoses = new Vector<Pose>();
+		infoGains = new Vector<Float>();
+		
+		//offline setting for test
+		//setCameraPoses(cameraPoses, infoGains);
+		//vvs = createViewVariables(cameraPoses, infoGains);
+		
+		setupSolvers();
+		setupMonitoring();
+		
+//		metaSolver = new ViewCoordinator(0, 10000000, 100);
+//		viewSolver = (ViewConstraintSolver)metaSolver.getConstraintSolvers()[0];
+//		ans = (ActivityNetworkSolver)((TrajectoryEnvelopeSolver)viewSolver.getConstraintSolvers()[0]).getConstraintSolvers()[0];
+//		MetaCSPLogging.setLevel(ViewCoordinator.class, Level.FINEST);
+//		metaSolver.setROSNode(connectedNode);
+//		metaSolver.setRobotCurrentPose(robotsCurrentPose);
+//		long timeNow = connectedNode.getCurrentTime().totalNsecs()/1000000;
+//		metaSolver.setTimeNow(timeNow);
+//				
+//		//adding the meta-constraints
+//		ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, new ViewSelectionValOH());	
+//		//ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, null);		
+//		viewSelectionMC.setRobotNumber(NUMBEROFROBOTS);
+//		metaSolver.addMetaConstraint(viewSelectionMC);
+//		
+//		RobotAllocationMetaConstraint RobotAllocationMC = new RobotAllocationMetaConstraint(null, null);
+//		metaSolver.addMetaConstraint(RobotAllocationMC);
+//		
+//		ViewSchedulingMetaConstraint viewSchedulingMC = new ViewSchedulingMetaConstraint(null, null);
+//		metaSolver.addMetaConstraint(viewSchedulingMC);
+//
+//		final Random rand = new Random(Calendar.getInstance().getTimeInMillis());
+//		viewSchedulingMC.setValOH(new ValueOrderingH() {
+//			@Override
+//			public int compare(ConstraintNetwork arg0, ConstraintNetwork arg1) {
+//				return (rand.nextInt(3)-1);
+//			}
+//		});
+		
+		synchronized (semaphore) {
+			getNextBestView(cameraPoses, infoGains);
+		}
+		
+		
+//		//final TrajectoryEnvelopeAnimator tea = new TrajectoryEnvelopeAnimator("Solution");		
+//		InferenceCallback cb = new InferenceCallback() {	
+//						
+//			@Override
+//			public void doInference(long timeNow) {
+//				if(poseReceived)
+//					metaSolver.backtrack(); 
+//				
+//				if (metaSolver.getAddedResolvers().length > 0) {
+//					solved = true;
+//					//visualizationTEAnimator(tea);
+//					metaCSPLogger.info("== SOLUTION ==");
+//					for (ConstraintNetwork cn : metaSolver.getAddedResolvers()) {
+//						for (Constraint con : cn.getConstraints()) {
+//							metaCSPLogger.info("\t" + con);
+//						}
+//					}
+//					metaCSPLogger.info("== END SOLUTION ==");
+//					//show timeline
+//					TimelinePublisher tp = new TimelinePublisher(ans.getConstraintNetwork(), new Bounds(0,60000), true, "Time", "turtlebot1", "turtlebot2", "turtlebot3");
+//					TimelineVisualizer tv = new TimelineVisualizer(tp);
+//					tv.startAutomaticUpdate(CONTROL_PERIOD);
+//					//tp.publish(false, false);
+//					
+//					//ConstraintNetwork.draw(viewSolver.getTrajectoryEnvelopeSolver().getConstraintNetwork());
+//					ConstraintNetwork.saveConstraintNetwork(viewSolver.getTrajectoryEnvelopeSolver().getConstraintNetwork(), "testingLucia.cn");
+//					metaSolver.clearResolvers();									
+//				}
+//				
+//				boolean allDispatched = false;
+//				if(solved){
+//					int finishedActs = 0;
+//					int unSelectedVV = 0; 
+//					Variable[] tes = viewSolver.getTrajectoryEnvelopeSolver().getVariables();
+//					for (int i = 0; i < tes.length; i++) {
+//						TrajectoryEnvelope te = (TrajectoryEnvelope)tes[i];
+//						if(te.getRobotID() == -1){
+//							unSelectedVV++;
+//						}							
+//						if(te.getTemporalVariable().getLET() < connectedNode.getCurrentTime().totalNsecs()/TEMPORAL_RESOLUTION){
+//							finishedActs++;
+//						}							
+//					}
+//					System.out.println("FINISHED ACTS: " + finishedActs);
+//					System.out.println("VARS number: " + (tes.length - unSelectedVV));
+//					if(finishedActs == tes.length - unSelectedVV){						
+//						allDispatched = true;
+//					}
+//				}
+//
+//				if(allDispatched){
+//					System.out.println(">>>>> All already dispatched actions have been finished!!!!!!");
+//					solved = false;
+//					poseReceived = false;
+//					setupFromScratch(this, null);
+//					cameraPoses.clear();
+//					infoGains.clear();
+//					synchronized (semaphore) {
+//						getNextBestView(cameraPoses, infoGains);
+//					}
+//				}
+//			}
+//		};
+//		
+//		animator = new ConstraintNetworkAnimator(ans, CONTROL_PERIOD, cb){
+//			@Override
+//			protected long getCurrentTimeInMillis() {				
+//				return connectedNode.getCurrentTime().totalNsecs()/TEMPORAL_RESOLUTION;
+//			}
+//		};		
+//		FlapForChaosDispatchingFunction[] dfs = new FlapForChaosDispatchingFunction[NUMBEROFROBOTS];
+//		for (int i = 1; i <= NUMBEROFROBOTS; i++) {
+//			dfs[i-1] = new FlapForChaosDispatchingFunction("turtlebot"+i, metaSolver, connectedNode);
+//		}
+//		animator.addDispatchingFunctions(ans, dfs);
+//		
+//		//tea.setConstraintNetworkAnimator(animator);
 	}
 	
 	private void visualizationTEAnimator(TrajectoryEnvelopeAnimator tea) {
@@ -241,50 +372,52 @@ public class TestROSDispatching extends AbstractNodeMain {
 		tea.addExtraGeometries(gms);				
 	}
 
-	private void setupFromScratch(InferenceCallback cb, TrajectoryEnvelopeAnimator tea) {
-		metaSolver = new ViewCoordinator(0, 10000000, 100);
-		viewSolver = (ViewConstraintSolver)metaSolver.getConstraintSolvers()[0];
-		ans = (ActivityNetworkSolver)((TrajectoryEnvelopeSolver)viewSolver.getConstraintSolvers()[0]).getConstraintSolvers()[0];
-		MetaCSPLogging.setLevel(ViewCoordinator.class, Level.FINEST);
-		metaSolver.setROSNode(connectedNode);
-		metaSolver.setRobotCurrentPose(robotsCurrentPose);
-		long timeNow = connectedNode.getCurrentTime().totalNsecs()/TEMPORAL_RESOLUTION;
-		metaSolver.setTimeNow(timeNow);
-				
-		//adding the meta-constraints
-		ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, new ViewSelectionValOH());	
-		//ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, null);		
-		viewSelectionMC.setRobotNumber(NUMBEROFROBOTS);
-		metaSolver.addMetaConstraint(viewSelectionMC);
-		
-		RobotAllocationMetaConstraint RobotAllocationMC = new RobotAllocationMetaConstraint(null, null);
-		metaSolver.addMetaConstraint(RobotAllocationMC);
-		
-		ViewSchedulingMetaConstraint viewSchedulingMC = new ViewSchedulingMetaConstraint(null, null);
-		metaSolver.addMetaConstraint(viewSchedulingMC);
-
-		final Random rand = new Random(Calendar.getInstance().getTimeInMillis());
-		viewSchedulingMC.setValOH(new ValueOrderingH() {
-			@Override
-			public int compare(ConstraintNetwork arg0, ConstraintNetwork arg1) {
-				return (rand.nextInt(3)-1);
-			}
-		});
-		//////////////////////////////////////////////////
-		//setup dispatching
-		ConstraintNetworkAnimator animator = new ConstraintNetworkAnimator(ans, 1000, cb){
-			@Override
-			protected long getCurrentTimeInMillis() {				
-				return connectedNode.getCurrentTime().totalNsecs()/1000000;
-			}
-		};		
-		FlapForChaosDispatchingFunction[] dfs = new FlapForChaosDispatchingFunction[NUMBEROFROBOTS];
-		for (int i = 1; i <= NUMBEROFROBOTS; i++) {
-			dfs[i-1] = new FlapForChaosDispatchingFunction("turtlebot"+i, metaSolver, connectedNode);
-		}
-		animator.addDispatchingFunctions(ans, dfs);		
-		//tea.setConstraintNetworkAnimator(animator);
-	}
+//	private void setupFromScratch(InferenceCallback cb, TrajectoryEnvelopeAnimator tea) {
+//		if (animator != null) animator.teardown();
+//		metaSolver = new ViewCoordinator(0, 10000000, 100);
+//		viewSolver = (ViewConstraintSolver)metaSolver.getConstraintSolvers()[0];
+//		ans = (ActivityNetworkSolver)((TrajectoryEnvelopeSolver)viewSolver.getConstraintSolvers()[0]).getConstraintSolvers()[0];
+//		MetaCSPLogging.setLevel(ViewCoordinator.class, Level.FINEST);
+//		metaSolver.setROSNode(connectedNode);
+//		metaSolver.setRobotCurrentPose(robotsCurrentPose);
+//		long timeNow = connectedNode.getCurrentTime().totalNsecs()/TEMPORAL_RESOLUTION;
+//		metaSolver.setTimeNow(timeNow);
+//				
+//		//adding the meta-constraints
+//		ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, new ViewSelectionValOH());	
+//		//ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, null);		
+//		viewSelectionMC.setRobotNumber(NUMBEROFROBOTS);
+//		metaSolver.addMetaConstraint(viewSelectionMC);
+//		
+//		RobotAllocationMetaConstraint RobotAllocationMC = new RobotAllocationMetaConstraint(null, null);
+//		metaSolver.addMetaConstraint(RobotAllocationMC);
+//		
+//		ViewSchedulingMetaConstraint viewSchedulingMC = new ViewSchedulingMetaConstraint(null, null);
+//		metaSolver.addMetaConstraint(viewSchedulingMC);
+//
+//		final Random rand = new Random(Calendar.getInstance().getTimeInMillis());
+//		viewSchedulingMC.setValOH(new ValueOrderingH() {
+//			@Override
+//			public int compare(ConstraintNetwork arg0, ConstraintNetwork arg1) {
+//				return (rand.nextInt(3)-1);
+//			}
+//		});
+//		//////////////////////////////////////////////////
+//		//setup dispatching
+//		cb.
+//		animator = new ConstraintNetworkAnimator(ans, 1000, cb){
+//			@Override
+//			protected long getCurrentTimeInMillis() {				
+//				return connectedNode.getCurrentTime().totalNsecs()/1000000;
+//			}
+//		};		
+//		FlapForChaosDispatchingFunction[] dfs = new FlapForChaosDispatchingFunction[NUMBEROFROBOTS];
+//		for (int i = 1; i <= NUMBEROFROBOTS; i++) {
+//			dfs[i-1] = new FlapForChaosDispatchingFunction("turtlebot"+i, metaSolver, connectedNode);
+//		}
+//		animator.addDispatchingFunctions(ans, dfs);		
+//		//tea.setConstraintNetworkAnimator(animator);
+//	}
 	
 	private  Vector<ViewVariable> createViewVariables(Vector<Pose> cameraPoses, Vector<Float> infoGains) {
 		Vector<ViewVariable> ret = new Vector<ViewVariable>();

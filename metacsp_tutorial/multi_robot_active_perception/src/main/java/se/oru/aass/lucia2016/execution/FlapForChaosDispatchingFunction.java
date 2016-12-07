@@ -70,7 +70,7 @@ public class FlapForChaosDispatchingFunction extends DispatchingFunction {
 							//System.out.println(">>>>>>>>>>>>>>>>>> (" + this.+ ") ACTIONLIB SAYS: " + gs.getStatus());
 							if (gs.getStatus() != (byte)1) {
 								finishCurrentActivity();
-								metaCSPLogger.info("EXIT CODE: " + gs.getStatus());
+								//metaCSPLogger.info("EXIT CODE: " + gs.getStatus());
 							}
 						}
 					}
