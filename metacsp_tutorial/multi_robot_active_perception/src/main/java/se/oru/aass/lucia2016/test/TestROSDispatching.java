@@ -10,6 +10,8 @@ import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import nav_msgs.OccupancyGrid;
+
 import org.metacsp.framework.Constraint;
 import org.metacsp.framework.ConstraintNetwork;
 import org.metacsp.framework.ValueOrderingH;
@@ -56,6 +58,7 @@ import se.oru.aass.lucia2016.multi.ViewVariable;
 import se.oru.aass.lucia2016.utility.Convertor;
 import se.oru.aass.lucia2016.utility.FootPrintFactory;
 import se.oru.aass.lucia2016.utility.Lucia16RegionOfInterest;
+import se.oru.aass.lucia2016.utility.ParkingPoseLib;
 import se.oru.aass.lucia2016.utility.PathPlanFactory;
 import uos_active_perception_msgs.GetObservationCameraPoses;
 import uos_active_perception_msgs.GetObservationCameraPosesRequest;
@@ -86,6 +89,7 @@ public class TestROSDispatching extends AbstractNodeMain {
 	private static final long HORIZON = 10000000;
 	private long ORIGIN = 0;
 	private long SENSING_DURATION = 5000;
+	private OccupancyGrid map = null;
 
 	
 	@Override
@@ -106,6 +110,7 @@ public class TestROSDispatching extends AbstractNodeMain {
 		metaSolver.setROSNode(connectedNode);
 		metaSolver.setRobotCurrentPose(robotsCurrentPose);
 		metaSolver.setTimeNow(getCurrentTime());
+		metaSolver.setMap(map);
 				
 		//adding the meta-constraints
 		ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, new ViewSelectionValOH());	
@@ -232,6 +237,8 @@ public class TestROSDispatching extends AbstractNodeMain {
 			subscribeToRobotReportTopic(i);
 		}
 		
+		subscribeToMapServer();
+		
 		cameraPoses = new Vector<Pose>();
 		infoGains = new Vector<Float>();
 		
@@ -321,6 +328,17 @@ public class TestROSDispatching extends AbstractNodeMain {
 				robotsCurrentPose.put(i, message.getPose().getPose());
 			}
 		}, 10);	
+	}
+	
+	private void subscribeToMapServer() {
+		Subscriber<nav_msgs.OccupancyGrid> mapSubscriber = this.connectedNode.newSubscriber("/turtlebot1/move_base/global_costmap/costmap", nav_msgs.OccupancyGrid._TYPE);
+		mapSubscriber.addMessageListener(new MessageListener<nav_msgs.OccupancyGrid>() {
+			@Override
+			public void onNewMessage(nav_msgs.OccupancyGrid message) {
+				metaCSPLogger.info("Got the cost map!");
+				map = message;
+			}
+		});
 	}
 	
 	public void getNextBestView(final Vector<Pose> cameraPoses, final Vector<Float> infoGains) {

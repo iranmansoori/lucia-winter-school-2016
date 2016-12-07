@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.TreeSet;
 import java.util.Vector;
 
+import nav_msgs.OccupancyGrid;
+
 import org.hamcrest.core.IsInstanceOf;
 import org.metacsp.framework.Constraint;
 import org.metacsp.framework.ConstraintNetwork;
@@ -53,6 +55,7 @@ public class ViewCoordinator extends MetaConstraintSolver{
 	private Object semaphore = new Object();
 	private String prefix = "turtlebot";
 	private long timeNow = 0;
+	private OccupancyGrid map = null;
 	
 	protected ViewCoordinator(Class<?>[] constraintTypes, long animationTime,
 			ConstraintSolver[] internalSolvers) {
@@ -61,7 +64,10 @@ public class ViewCoordinator extends MetaConstraintSolver{
 		// TODO Auto-generated constructor stub
 	}
 
-
+	public void setMap(OccupancyGrid map) {
+		this.map = map;
+	}
+	
 	/**
 	 * Create a {@link ViewCoordinator} with a given origin and temporal horizon.
 	 * @param origin The origin of time.
@@ -319,7 +325,8 @@ public class ViewCoordinator extends MetaConstraintSolver{
 					synchronized (semaphore) {
 						PathPlanFactory.getRobotPathPlanFromROSSerive(robToPathStatus, robToMoveAwayPoses, connectedNode, robotId, 
 								Convertor.getPoseStamped(startPose, connectedNode), 
-								Convertor.getPoseStamped(ParkingPoseLib.getHardCodedMoveAwayParkingPose(robotId), connectedNode));
+								//Convertor.getPoseStamped(ParkingPoseLib.getHardCodedMoveAwayParkingPose(robotId), connectedNode));
+								Convertor.getPoseStamped(ParkingPoseLib.getMoveAwayPose(map, startPose, ((ViewConstraintSolver)this.getConstraintSolvers()[0]), robotId), connectedNode));
 					}
 				}
 			}			
