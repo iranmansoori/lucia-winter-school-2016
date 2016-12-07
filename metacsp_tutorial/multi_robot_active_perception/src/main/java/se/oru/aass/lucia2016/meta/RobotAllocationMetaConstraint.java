@@ -67,7 +67,7 @@ public class RobotAllocationMetaConstraint extends MetaConstraint{
 				cn.addConstraint(rc);				
 			}
 			ret.add(cn);
-			break;
+			//break;
 		}
 		return ret.toArray(new ConstraintNetwork[ret.size()]);
 	}

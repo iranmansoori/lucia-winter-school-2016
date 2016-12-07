@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+  <node name="metacsp_tutorial" pkg="metacsp_tutorial" type="multi_robot_active_perception" args="se.oru.aass.lucia2016.test.TestROSDispatching" output="screen">
+     <!--param name="num_used_panels" type="int" value="2" /-->
+     <!--rosparam param="used_panels">[1,3,4]</rosparam/-->     
+  </node>
+</launch>
+
+

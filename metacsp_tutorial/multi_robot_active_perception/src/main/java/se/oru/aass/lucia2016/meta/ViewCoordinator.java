@@ -319,7 +319,7 @@ public class ViewCoordinator extends MetaConstraintSolver{
 					synchronized (semaphore) {
 						PathPlanFactory.getRobotPathPlanFromROSSerive(robToPathStatus, robToMoveAwayPoses, connectedNode, robotId, 
 								Convertor.getPoseStamped(startPose, connectedNode), 
-								Convertor.getPoseStamped(ParkingPoseLib.getMoveAwayParkingPose(robotId), connectedNode));
+								Convertor.getPoseStamped(ParkingPoseLib.getHardCodedMoveAwayParkingPose(robotId), connectedNode));
 					}
 				}
 			}			
@@ -524,15 +524,6 @@ public class ViewCoordinator extends MetaConstraintSolver{
 				else if (!intersectionse1se2.intersects(fp) && !var1sec2.isEmpty()) {
 					var1sec3.add(ps);
 				}
-				//			if (!intersectionse1se2.contains(point) && var1sec2.isEmpty()) {
-				//				var1sec1.add(ps);
-				//			}
-				//			else if (intersectionse1se2.contains(point)) {
-				//				var1sec2.add(ps);
-				//			}
-				//			else if (!intersectionse1se2.contains(point) && !var1sec2.isEmpty()) {
-				//				var1sec3.add(ps);
-				//			}
 			}
 
 			//Add to start
@@ -687,6 +678,10 @@ public class ViewCoordinator extends MetaConstraintSolver{
 	public void setRobotCurrentPose(
 			HashMap<Integer, geometry_msgs.Pose> robotsCurrentPose) {
 		this.robotsCurrentPose  = robotsCurrentPose;		
+	}
+	
+	public HashMap<Integer, geometry_msgs.Pose> getRobotsCurrentPose() {
+		return robotsCurrentPose;
 	}
 
 	public String getPrefix() {
