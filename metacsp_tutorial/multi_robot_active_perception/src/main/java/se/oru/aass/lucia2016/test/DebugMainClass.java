@@ -29,8 +29,8 @@ public class DebugMainClass {
 	    iranConfig.setMasterUri(masterURI);
 
 	    iranConfig.setNodeName("lucia_coordination");
-	   NodeMain mainNode = new TestROSDispatching();
-	    //NodeMain mainNode = new TestCancelMissionPublishers();
+	    //NodeMain mainNode = new TestROSDispatching();
+	    NodeMain mainNode = new TestManualScheduling();
 	    
 	    executor.execute(mainNode, iranConfig);
 
