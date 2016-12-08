@@ -7,8 +7,6 @@ import org.metacsp.framework.Variable;
 import org.metacsp.framework.multi.MultiVariable;
 import org.metacsp.multi.activity.Activity;
 import org.metacsp.multi.allenInterval.AllenInterval;
-import org.metacsp.multi.allenInterval.AllenIntervalConstraint;
-import org.metacsp.multi.spatial.DE9IM.DE9IMRelation;
 import org.metacsp.multi.spatial.DE9IM.GeometricShapeVariable;
 import org.metacsp.multi.spatial.DE9IM.PolygonalDomain;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
@@ -22,11 +20,18 @@ import com.vividsolutions.jts.geom.util.AffineTransformation;
 
 
 /**
+ * 
+ * This {@link MultiVariable} groups four lower-level variables:
+ * 1. a {@link TrajectoryEnvelope}, representing the robot's (stationary) position while sensing;
+ * 2. a {@link GeometricShapeVariable}, representing the robot's field of view while sensing;
+ * 3. a {@link RobotVariable}, representing the robot assigned to this view pose;
+ * 4. a {@link SelectionVariable}, representing whether or not the view has been selected for sensing.
+ * 
  * @author Iran Mansouri
  */
 public class ViewVariable extends MultiVariable implements Activity{
 
-	private Polygon FOV = null;
+	private static final long serialVersionUID = 4579823064457960933L;
 	private Polygon FoVPolygon = null;
 	private double infoGain = 0.0;
 	
@@ -95,7 +100,6 @@ public class ViewVariable extends MultiVariable implements Activity{
 
 	@Override
 	public String toString() {
-		// TODO Auto-generated method stub
 		return "viewVariable ID " + this.id;
 	}
 

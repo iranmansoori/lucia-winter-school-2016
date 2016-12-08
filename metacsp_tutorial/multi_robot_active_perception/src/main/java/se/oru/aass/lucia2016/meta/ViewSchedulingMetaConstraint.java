@@ -23,12 +23,7 @@
 package se.oru.aass.lucia2016.meta;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.Vector;
-import java.util.logging.Logger;
 
 import org.metacsp.framework.Constraint;
 import org.metacsp.framework.ConstraintNetwork;
@@ -40,22 +35,29 @@ import org.metacsp.framework.VariablePrototype;
 import org.metacsp.framework.meta.MetaConstraint;
 import org.metacsp.framework.meta.MetaVariable;
 import org.metacsp.multi.activity.Activity;
-import org.metacsp.multi.activity.ActivityComparator;
 import org.metacsp.multi.allenInterval.AllenIntervalConstraint;
+import org.metacsp.multi.spatial.DE9IM.DE9IMRelation;
+import org.metacsp.multi.spatial.DE9IM.DE9IMRelationSolver;
 import org.metacsp.multi.spatial.DE9IM.GeometricShapeDomain;
 import org.metacsp.multi.spatial.DE9IM.GeometricShapeVariable;
 import org.metacsp.multi.spatioTemporal.paths.TrajectoryEnvelope;
 import org.metacsp.multi.spatioTemporal.paths.TrajectoryEnvelopeSolver;
-import org.metacsp.time.APSPSolver;
 import org.metacsp.time.Bounds;
-import org.metacsp.utility.PowerSet;
-import org.metacsp.utility.logging.MetaCSPLogging;
-
-import com.vividsolutions.jts.geom.Geometry;
 
 import se.oru.aass.lucia2016.multi.ViewConstraintSolver;
 import se.oru.aass.lucia2016.multi.ViewVariable;
 
+import com.vividsolutions.jts.geom.Geometry;
+
+/**
+ * This {@link MetaConstraint} identifies {@link TrajectoryEnvelope}s that overlap in space and time. These may either be {@link TrajectoryEnvelope}s underlying {@link ViewVariable}s
+ * (thus, representing the stationary pose of a robot while it is sensing), or {@link TrajectoryEnvelope}s that represent the motion of robots. It resolves spatio-temporally overlapping
+ * variables by posting {@link AllenIntervalConstraint}s of type {@link AllenIntervalConstraint.Type#Before}, or by posting {@link TrajectoryEnvelope}s that make robots move away from
+ * the offending pose. 
+ * 
+ * @author iran
+ *
+ */
 public class ViewSchedulingMetaConstraint extends MetaConstraint {
 	
 	private static final long serialVersionUID = 5719994497319584156L;
@@ -159,12 +161,15 @@ public class ViewSchedulingMetaConstraint extends MetaConstraint {
 	}
 	
 	private boolean checkSpatialInterstion(GeometricShapeVariable poly1, GeometricShapeVariable poly2){
-
-		Geometry shape1 = ((GeometricShapeDomain)poly1.getDomain()).getGeometry();
-		Geometry shape2 = ((GeometricShapeDomain)poly2.getDomain()).getGeometry();
-		if(shape1.intersects(shape2))
-			return true;
-		return false;
+		for (DE9IMRelation.Type t : DE9IMRelation.getRelations(poly1, poly2)) {
+			if (t.equals(DE9IMRelation.Type.Disjoint)) return false;
+		}
+		return true;
+//		Geometry shape1 = ((GeometricShapeDomain)poly1.getDomain()).getGeometry();
+//		Geometry shape2 = ((GeometricShapeDomain)poly2.getDomain()).getGeometry();
+//		if(shape1.intersects(shape2))
+//			return true;
+//		return false;
 	}
 	
 	@Override
@@ -250,11 +255,10 @@ public class ViewSchedulingMetaConstraint extends MetaConstraint {
 		ViewConstraintSolver viewSolver= (ViewConstraintSolver)this.getGroundSolver();
 		ArrayList<ConstraintNetwork> ret = new ArrayList<ConstraintNetwork>();
 
-		//vv2.footprint MEETS vv2.moveaway && vv2.moveaway BEFORE vv1.footprint
+		//RESOLVER 1: vv2.footprint MEETS vv2.moveaway && vv2.moveaway BEFORE vv1.footprint
 		// OR
-		//vv1.footprint BEFORE vv2.footprint
+		//RESOLVER 2: vv1.footprint BEFORE vv2.footprint
 
-		
 		ConstraintNetwork resolver1 = new ConstraintNetwork(null);
 		
 		AllenIntervalConstraint vv1FPBeforeVv2FP = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before);
@@ -282,14 +286,17 @@ public class ViewSchedulingMetaConstraint extends MetaConstraint {
 			resolver2.addConstraint(senseMeetsMoveAway);
 			
 		}
-		else {
-			AllenIntervalConstraint beforeMoveout = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before);
-			beforeMoveout.setFrom(moveOutTE);			
-			beforeMoveout.setTo(vv1.getTrajectoryEnvelope());
-			resolver2.addConstraint(beforeMoveout);			
-		}
+		else getViewVarViewVarResolverHelper(vv1, moveOutTE, resolver2);
+
 		ret.add(resolver2);
 		return ret;
+	}
+	
+	private void getViewVarViewVarResolverHelper(ViewVariable vv1, TrajectoryEnvelope moveOutTE, ConstraintNetwork resolver) {
+		AllenIntervalConstraint beforeMoveout = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before);
+		beforeMoveout.setFrom(moveOutTE);			
+		beforeMoveout.setTo(vv1.getTrajectoryEnvelope());
+		resolver.addConstraint(beforeMoveout);	
 	}
 
 	private TrajectoryEnvelope getMoveOut(int robotID) {

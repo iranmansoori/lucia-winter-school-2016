@@ -3,12 +3,21 @@ package se.oru.aass.lucia2016.multi;
 import org.metacsp.framework.Constraint;
 import org.metacsp.framework.ConstraintSolver;
 import org.metacsp.framework.Variable;
-import org.metacsp.framework.ConstraintSolver.OPTIONS;
 
-public class ViewAllocationSolver extends ConstraintSolver{
+/**
+ * This solver is a ground solver underlying the {@link ViewConstraintSolver}. It manages variables of type
+ * {@link SelectionVariable} and understands {@link ViewSelectionConstraint}s, though it does not
+ * perform inference on {@link ViewSelectionConstraint}s. 
+ * 
+ * @author iran
+ *
+ */
+public class ViewSelectionSolver extends ConstraintSolver{
 
-	protected ViewAllocationSolver() {
-		super(new Class[]{ViewConstraint.class}, SelectionVariable.class);
+	private static final long serialVersionUID = 669559549933539227L;
+
+	protected ViewSelectionSolver() {
+		super(new Class[]{ViewSelectionConstraint.class}, SelectionVariable.class);
 		this.setOptions(OPTIONS.AUTO_PROPAGATE);
 		this.setOptions(OPTIONS.DOMAINS_AUTO_INSTANTIATED);
 	}

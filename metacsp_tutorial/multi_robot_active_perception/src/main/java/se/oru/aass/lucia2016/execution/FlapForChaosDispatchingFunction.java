@@ -1,13 +1,7 @@
 package se.oru.aass.lucia2016.execution;
-import geometry_msgs.PoseStamped;
-
-import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.HashMap;
 import java.util.Vector;
 import java.util.logging.Logger;
-
-
 
 import org.metacsp.dispatching.DispatchingFunction;
 import org.metacsp.framework.Variable;
@@ -25,31 +19,22 @@ import org.ros.node.service.ServiceClient;
 import org.ros.node.service.ServiceResponseListener;
 import org.ros.node.topic.Subscriber;
 
-import actionlib_msgs.GoalID;
-import actionlib_msgs.GoalStatus;
-
-
-
-
 import se.oru.aass.lucia2016.meta.ViewCoordinator;
 import se.oru.aass.lucia2016.multi.ViewConstraintSolver;
-import se.oru.aass.lucia2016.utility.Convertor;
 import services.sendGoal;
 import services.sendGoalRequest;
 import services.sendGoalResponse;
-
-
+import actionlib_msgs.GoalStatus;
 
 public class FlapForChaosDispatchingFunction extends DispatchingFunction {
 
 	public static final Vector<SymbolicVariableActivity> executingActs = new Vector<SymbolicVariableActivity>();
 	final Logger metaCSPLogger = MetaCSPLogging.getLogger(FlapForChaosDispatchingFunction.class);
 	private ConnectedNode node = null;
-	private int counter;
-	private static int MIN_MESSAGES = 30;
 	private boolean isExecuting = false;
 	private SymbolicVariableActivity currentAct = null;
 	private ViewCoordinator metaSolver = null;
+	Subscriber<actionlib_msgs.GoalStatusArray> actionlibFeedback = null;
 	
 	public FlapForChaosDispatchingFunction(String component, ViewCoordinator metaSolver, ConnectedNode rosNode) {
 		super(component);
@@ -58,24 +43,27 @@ public class FlapForChaosDispatchingFunction extends DispatchingFunction {
 		
 		//Subscribe to movebase feedback topic
 		if(this.node != null){			
-			Subscriber<actionlib_msgs.GoalStatusArray> actionlibFeedback = rosNode.newSubscriber("/" + this.component + "/move_base/status", actionlib_msgs.GoalStatusArray._TYPE);
+			actionlibFeedback = rosNode.newSubscriber("/" + this.component + "/move_base/status", actionlib_msgs.GoalStatusArray._TYPE);
 			
 			actionlibFeedback.addMessageListener(new MessageListener<actionlib_msgs.GoalStatusArray>() {
 				@Override
 				public void onNewMessage(actionlib_msgs.GoalStatusArray message) {
 					if (message.getStatusList() != null && !message.getStatusList().isEmpty()) {
-						//goalID = message.getStatusList().size()-1;	
 						GoalStatus gs = message.getStatusList().get(0);		
 						if (isExecuting()) {
-							//System.out.println(">>>>>>>>>>>>>>>>>> (" + this.+ ") ACTIONLIB SAYS: " + gs.getStatus());
 							if (gs.getStatus() != (byte)1) {
 								finishCurrentActivity();
-								//metaCSPLogger.info("EXIT CODE: " + gs.getStatus());
 							}
 						}
 					}
 				}
 			}, 10);
+		}
+	}
+	
+	public void deleteMessageListener() {
+		if (actionlibFeedback != null) {
+			actionlibFeedback.shutdown();
 		}
 	}
 	
@@ -88,7 +76,7 @@ public class FlapForChaosDispatchingFunction extends DispatchingFunction {
 	}
 
 	public void finishCurrentActivity() {
-		System.out.println(">>>>>>>>>>>>>>>>>>> (" + this.component + ") has finished " + currentAct);
+		System.out.println("<<< " + this.component + " has finished " + currentAct);
 		this.finish(currentAct);
 		currentAct = null;
 		setExecuting(false);
@@ -119,14 +107,15 @@ public class FlapForChaosDispatchingFunction extends DispatchingFunction {
 						try { Thread.sleep(10); }
 						catch (InterruptedException e) { e.printStackTrace(); }
 					}
-					System.out.println(">>>>>>>>>>>>>>>>>>> (" + component + ") has finished " + theAct);
+					metaCSPLogger.info("<<< " + component + " has finished " + theAct);
 					thisDF.finish(theAct);
 					executingActs.remove(theAct);
 				}
 			}.start();
 		}
-		else{//call ROS service to send the robot			
-			//get the trajectory envelope belongs to the paths, and send the last pose to the sendGoal Service
+		else {
+			//call ROS service to send the robot			
+			//get the trajectory envelope that belongs to the paths, and send the last pose to the sendGoal Service
 			TrajectoryEnvelopeSolver teSolver = ((ViewConstraintSolver)this.metaSolver.getConstraintSolvers()[0]).getTrajectoryEnvelopeSolver();
 			Variable[] vars = teSolver.getVariables();
 			for (int i = 0; i < vars.length; i++) {

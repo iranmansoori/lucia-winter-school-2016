@@ -1,6 +1,5 @@
 package se.oru.aass.lucia2016.meta;
 
-import java.util.HashMap;
 import java.util.Vector;
 
 import org.metacsp.framework.Constraint;
@@ -11,16 +10,18 @@ import org.metacsp.framework.Variable;
 import org.metacsp.framework.VariableOrderingH;
 import org.metacsp.framework.meta.MetaConstraint;
 import org.metacsp.framework.meta.MetaVariable;
-import org.metacsp.utility.Combination;
 import org.metacsp.utility.Permutation;
 
-import se.oru.aass.lucia2016.multi.RobotConstraint;
-import se.oru.aass.lucia2016.multi.ViewConstraint;
+import se.oru.aass.lucia2016.multi.RobotAllocationConstraint;
 import se.oru.aass.lucia2016.multi.ViewConstraintSolver;
 import se.oru.aass.lucia2016.multi.ViewVariable;
 
-
-public class RobotAllocationMetaConstraint extends MetaConstraint{
+/**
+ * This {@link MetaConstraint} allocates robots to view poses.
+ * @author iran
+ *
+ */
+public class RobotAllocationMetaConstraint extends MetaConstraint {
 
 	
 	private static final long serialVersionUID = -4876976005187040794L;
@@ -61,7 +62,7 @@ public class RobotAllocationMetaConstraint extends MetaConstraint{
 			int[] a = c.next();
 			ConstraintNetwork cn = new ConstraintNetwork(null);
 			for (int i = 0; i < a.length; i++) {
-				RobotConstraint rc = new RobotConstraint(a[i]+1);
+				RobotAllocationConstraint rc = new RobotAllocationConstraint(a[i]+1);
 				rc.setFrom(((ViewVariable)vars[i]));
 				rc.setTo(((ViewVariable)vars[i]));
 				cn.addConstraint(rc);				

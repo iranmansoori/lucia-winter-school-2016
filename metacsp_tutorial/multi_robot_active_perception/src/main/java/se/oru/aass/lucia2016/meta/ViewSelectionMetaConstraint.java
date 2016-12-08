@@ -16,19 +16,21 @@ import org.metacsp.utility.Combination;
 
 import com.vividsolutions.jts.geom.Geometry;
 
-import se.oru.aass.lucia2016.multi.ViewConstraint;
+import se.oru.aass.lucia2016.multi.ViewSelectionConstraint;
 import se.oru.aass.lucia2016.multi.ViewConstraintSolver;
 import se.oru.aass.lucia2016.multi.ViewVariable;
 
 
-
+/**
+ * This {@link MetaConstraint} selects view poses to be navigated to, considering the number of available robots.
+ * 
+ * @author iran
+ *
+ */
 public class ViewSelectionMetaConstraint extends MetaConstraint{
 
-	/**
-	 * Iran
-	 */
 	private static final long serialVersionUID = 3967833964891433564L;
-	private int robotNumber = 0;
+	private int numberOfRobots = 0;
 	
 	public ViewSelectionMetaConstraint(VariableOrderingH varOH,
 			ValueOrderingH valOH) {
@@ -36,8 +38,8 @@ public class ViewSelectionMetaConstraint extends MetaConstraint{
 		
 	}
 
-	public void setRobotNumber(int robotNumber) {
-		this.robotNumber = robotNumber;
+	public void setNumberOfRobots(int numRobots) {
+		this.numberOfRobots = numRobots;
 	}
 	
 	@Override
@@ -50,7 +52,6 @@ public class ViewSelectionMetaConstraint extends MetaConstraint{
 		for (int i = 0; i < vars.length; i++) {
 			if(vars[i] instanceof ViewVariable){
 				ViewVariable vv = ((ViewVariable)vars[i]);
-				//if(viewSolver.getRobotAllocationSolver().getViewConstraintByVariable(vv.getSelectionVar()) != null)
 				if(viewSolver.getViewConstraintByVariable(vv) != null)
 					selectionCounter++;
 				else{					
@@ -58,7 +59,7 @@ public class ViewSelectionMetaConstraint extends MetaConstraint{
 				}
 			}
 		}
-		if(selectionCounter < robotNumber){
+		if(selectionCounter < numberOfRobots){
 			ret.add(cn);
 		}
 		return ret.toArray(new ConstraintNetwork[ret.size()]);
@@ -69,8 +70,8 @@ public class ViewSelectionMetaConstraint extends MetaConstraint{
 		ConstraintNetwork conflict = metaVariable.getConstraintNetwork();		
 		Vector<ConstraintNetwork> ret = new Vector<ConstraintNetwork>();
 		Variable[] vars = conflict.getVariables();
-		if(vars.length < robotNumber ) robotNumber = vars.length;
-		Combination c = new Combination(vars.length , robotNumber);		
+		if(vars.length < numberOfRobots ) numberOfRobots = vars.length;
+		Combination c = new Combination(vars.length , numberOfRobots);		
 		HashMap<Integer, ViewVariable> indexToVar = new HashMap<Integer, ViewVariable>();
 		for (int i = 0; i < vars.length; i++) {
 			indexToVar.put(i, (ViewVariable)vars[i]);
@@ -81,7 +82,7 @@ public class ViewSelectionMetaConstraint extends MetaConstraint{
 			Vector<ViewVariable> vvs = new Vector<ViewVariable>();
 			boolean infeasible = false;
 			for (int i = 0; i < a.length; i++) {
-				ViewConstraint vc = new ViewConstraint();
+				ViewSelectionConstraint vc = new ViewSelectionConstraint();
 				ViewVariable curVV = indexToVar.get(a[i]);
 				for (int j = 0; j < vvs.size(); j++) {
 					Geometry shape1 = ((GeometricShapeDomain)curVV.getTrajectoryEnvelope().getEnvelopeVariable().getDomain()).getGeometry();

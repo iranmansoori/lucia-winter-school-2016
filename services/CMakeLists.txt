@@ -60,6 +60,7 @@ find_package(catkin REQUIRED COMPONENTS
    getPanel.srv
    rotate.srv
    getStatus.srv
+   reset.srv
  )
 
 ## Generate actions in the 'action' folder

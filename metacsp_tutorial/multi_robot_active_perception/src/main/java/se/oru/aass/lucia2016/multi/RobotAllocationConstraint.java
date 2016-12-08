@@ -3,7 +3,15 @@ package se.oru.aass.lucia2016.multi;
 import org.metacsp.framework.BinaryConstraint;
 import org.metacsp.framework.Constraint;
 
-public class RobotConstraint extends BinaryConstraint {
+/**
+ * This constraint imposes that a particular robot is assigned to a {@link RobotVariable},
+ * which in turn is one of the variables underlying the {@link ViewVariable} (the one
+ * that indicates which robot will observe from the view pose).
+ * 
+ * @author iran
+ *
+ */
+public class RobotAllocationConstraint extends BinaryConstraint {
 
 	private int robotId = 0;
 	
@@ -12,7 +20,7 @@ public class RobotConstraint extends BinaryConstraint {
 	 */
 	private static final long serialVersionUID = -2844997478387290946L;
 
-	public RobotConstraint(int robotId){
+	public RobotAllocationConstraint(int robotId){
 		this.robotId = robotId;
 	}
 	
@@ -28,7 +36,7 @@ public class RobotConstraint extends BinaryConstraint {
 
 	@Override
 	public Object clone() {
-		RobotConstraint ret = new RobotConstraint(this.robotId);
+		RobotAllocationConstraint ret = new RobotAllocationConstraint(this.robotId);
 		ret.setFrom(this.getFrom());
 		ret.setTo(this.getTo());
 		return ret;

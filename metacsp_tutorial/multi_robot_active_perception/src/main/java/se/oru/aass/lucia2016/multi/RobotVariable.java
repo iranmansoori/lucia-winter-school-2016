@@ -4,11 +4,15 @@ import org.metacsp.framework.ConstraintSolver;
 import org.metacsp.framework.Domain;
 import org.metacsp.framework.Variable;
 
+/**
+ * This variable type represents the decision of a robot assignment. It is one of the variables underlying
+ * the {@link ViewVariable} (the one that indicates which robot will observe from the view pose).
+ * 
+ * @author iran
+ *
+ */
 public class RobotVariable extends Variable {
 	
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 85453100979954279L;
 	private Domain dom;	
 	protected RobotVariable(ConstraintSolver cs, int id) {

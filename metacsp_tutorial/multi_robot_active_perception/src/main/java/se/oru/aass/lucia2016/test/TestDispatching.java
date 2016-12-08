@@ -36,8 +36,8 @@ import se.oru.aass.lucia2016.meta.RobotAllocationMetaConstraint;
 import se.oru.aass.lucia2016.meta.ViewCoordinator;
 import se.oru.aass.lucia2016.meta.ViewSchedulingMetaConstraint;
 import se.oru.aass.lucia2016.meta.ViewSelectionMetaConstraint;
-import se.oru.aass.lucia2016.multi.RobotConstraint;
-import se.oru.aass.lucia2016.multi.ViewConstraint;
+import se.oru.aass.lucia2016.multi.RobotAllocationConstraint;
+import se.oru.aass.lucia2016.multi.ViewSelectionConstraint;
 import se.oru.aass.lucia2016.multi.ViewConstraintSolver;
 import se.oru.aass.lucia2016.multi.ViewVariable;
 
@@ -136,7 +136,7 @@ public class TestDispatching {
 		
 		//adding the meta-constraints
 		ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, null) ;
-		viewSelectionMC.setRobotNumber(3);
+		viewSelectionMC.setNumberOfRobots(3);
 		metaSolver.addMetaConstraint(viewSelectionMC);
 		
 		RobotAllocationMetaConstraint RobotAllocationMC = new RobotAllocationMetaConstraint(null, null);

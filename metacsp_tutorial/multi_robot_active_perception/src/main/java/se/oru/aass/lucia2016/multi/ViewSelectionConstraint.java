@@ -2,9 +2,16 @@ package se.oru.aass.lucia2016.multi;
 
 import org.metacsp.framework.BinaryConstraint;
 import org.metacsp.framework.Constraint;
-import org.metacsp.multi.spatial.DE9IM.DE9IMRelation;
 
-public class ViewConstraint extends BinaryConstraint{
+/**
+ * This (unary) constraint restricts a {@link SelectionVariable} to be selected as a view pose.
+ * 
+ * @author iran
+ *
+ */
+public class ViewSelectionConstraint extends BinaryConstraint{
+
+	private static final long serialVersionUID = -4236978858344883532L;
 
 	@Override
 	public String getEdgeLabel() {
@@ -14,7 +21,7 @@ public class ViewConstraint extends BinaryConstraint{
 
 	@Override
 	public Object clone() {
-		ViewConstraint ret = new ViewConstraint();
+		ViewSelectionConstraint ret = new ViewSelectionConstraint();
 		ret.setFrom(this.getFrom());
 		ret.setTo(this.getTo());
 		return ret;

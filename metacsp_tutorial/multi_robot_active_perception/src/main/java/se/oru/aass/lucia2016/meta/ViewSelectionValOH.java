@@ -9,26 +9,31 @@ import org.metacsp.multi.spatial.DE9IM.GeometricShapeDomain;
 
 import com.vividsolutions.jts.geom.Geometry;
 
-import se.oru.aass.lucia2016.multi.ViewConstraint;
+import se.oru.aass.lucia2016.multi.ViewSelectionConstraint;
 import se.oru.aass.lucia2016.multi.ViewVariable;
 
-
+/**
+ * This heuristic is used by the {@link ViewSelectionMetaConstraint}. It
+ * prefers selection of views that maximize a linear combination of
+ * information gain and physical distance.
+ *   
+ * @author iran
+ *
+ */
 public class ViewSelectionValOH extends ValueOrderingH{
 
-	private static double alpha = 0.2;
+	private static double alpha = 0.6;
 	
 	@Override
 	public int compare(ConstraintNetwork arg0, ConstraintNetwork arg1) {
 		Constraint[] cons0 = arg0.getConstraints();
 		Constraint[] cons1 = arg1.getConstraints();
 		
-		
-		
 		Vector<ViewVariable> vvs0 = new Vector<ViewVariable>();
 		Vector<ViewVariable> vvs1 = new Vector<ViewVariable>();
 		for (int i = 0; i < cons0.length; i++) {
-			ViewVariable vv0 = (ViewVariable)((ViewConstraint)cons0[i]).getFrom();
-			ViewVariable vv1 = (ViewVariable)((ViewConstraint)cons1[i]).getFrom();
+			ViewVariable vv0 = (ViewVariable)((ViewSelectionConstraint)cons0[i]).getFrom();
+			ViewVariable vv1 = (ViewVariable)((ViewSelectionConstraint)cons1[i]).getFrom();
 			vvs0.add(vv0);
 			vvs1.add(vv1);
 		}
@@ -44,7 +49,6 @@ public class ViewSelectionValOH extends ValueOrderingH{
 		if(hr0 < hr1) return 1;
 		if(hr0 > hr1) return -1;
 		return 0;
-		
 	}
 
 	private double getSumInfoGain(Vector<ViewVariable> vvs) {

@@ -37,17 +37,23 @@ import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
 
-import se.oru.aass.lucia2016.multi.RobotConstraint;
-import se.oru.aass.lucia2016.multi.ViewConstraint;
+import se.oru.aass.lucia2016.multi.RobotAllocationConstraint;
+import se.oru.aass.lucia2016.multi.ViewSelectionConstraint;
 import se.oru.aass.lucia2016.multi.ViewConstraintSolver;
 import se.oru.aass.lucia2016.multi.ViewVariable;
+import se.oru.aass.lucia2016.test.MultiRobotCoordinator;
 import se.oru.aass.lucia2016.utility.Convertor;
 import se.oru.aass.lucia2016.utility.ParkingPoseLib;
 import se.oru.aass.lucia2016.utility.PathPlanFactory;
 
+/**
+ * {@link MetaConstraintSolver} that implements the logic of the high-level controller, the {@link MultiRobotCoordinator}.
+ * @author iran
+ *
+ */
 public class ViewCoordinator extends MetaConstraintSolver{
 
-
+	private static final long serialVersionUID = 3343094930510159585L;
 	private HashMap<TrajectoryEnvelope,ArrayList<TrajectoryEnvelope>> refinedWith = new HashMap<TrajectoryEnvelope, ArrayList<TrajectoryEnvelope>>();
 	private ConnectedNode connectedNode = null;
 	private HashMap<Integer, geometry_msgs.Pose> robotsCurrentPose = null;
@@ -60,8 +66,6 @@ public class ViewCoordinator extends MetaConstraintSolver{
 	protected ViewCoordinator(Class<?>[] constraintTypes, long animationTime,
 			ConstraintSolver[] internalSolvers) {
 		super(constraintTypes, animationTime, internalSolvers);
-		 
-		// TODO Auto-generated constructor stub
 	}
 
 	public void setMap(OccupancyGrid map) {
@@ -75,7 +79,7 @@ public class ViewCoordinator extends MetaConstraintSolver{
 	 * @param maxTrajectories The maximum number of {@link TrajectoryEnvelope}s that can be created with this solver.
 	 */
 	public ViewCoordinator(long origin, long horizon, int maxTrajectories) {
-		super(new Class[] {AllenIntervalConstraint.class, DE9IMRelation.class, ViewConstraint.class, RobotConstraint.class}, 0, new ViewConstraintSolver(origin, horizon, maxTrajectories));
+		super(new Class[] {AllenIntervalConstraint.class, DE9IMRelation.class, ViewSelectionConstraint.class, RobotAllocationConstraint.class}, 0, new ViewConstraintSolver(origin, horizon, maxTrajectories));
 	}
 
 	@Override
@@ -102,8 +106,8 @@ public class ViewCoordinator extends MetaConstraintSolver{
 		}
 		Vector<Variable> trajectoryEnvToRemove = new Vector<Variable>();
 		for (int i = 0; i < cons.length; i++) {
-			if(cons[i] instanceof RobotConstraint){
-				int rid = ((RobotConstraint)cons[i]).getRobotId();
+			if(cons[i] instanceof RobotAllocationConstraint){
+				int rid = ((RobotAllocationConstraint)cons[i]).getRobotId();
 				Variable[] vars = solver.getTrajectoryEnvelopeSolver().getVariables();
 
 				for (int j = 0; j < vars.length; j++) {
@@ -169,8 +173,8 @@ public class ViewCoordinator extends MetaConstraintSolver{
 		Variable[] vars =  metaValue.getVariables();
 		HashMap<Integer, ViewVariable> robotToVewvariable = new HashMap<Integer, ViewVariable>();
 		for (int i = 0; i < cons.length; i++) {
-			if(cons[i] instanceof RobotConstraint){
-				RobotConstraint rc = (RobotConstraint)cons[i];
+			if(cons[i] instanceof RobotAllocationConstraint){
+				RobotAllocationConstraint rc = (RobotAllocationConstraint)cons[i];
 				ViewVariable vv = (ViewVariable)rc.getFrom();
 				vv.getTrajectoryEnvelope().setRobotID(rc.getRobotId());
 				vv.getTrajectoryEnvelope().getSymbolicVariableActivity().setComponent(prefix + rc.getRobotId());
@@ -388,14 +392,7 @@ public class ViewCoordinator extends MetaConstraintSolver{
 		return true;
 	}
 
-
-
-
-
-
-
 	private String getTrajectory(int robotID) {
-
 		if(robotID == 1) 
 			return "paths/rid1_task1.path";
 		else if(robotID == 2)
@@ -403,7 +400,6 @@ public class ViewCoordinator extends MetaConstraintSolver{
 		else
 			return "paths/rid1_task6.path";
 	}
-
 
 	@Override
 	protected double getUpperBound() {

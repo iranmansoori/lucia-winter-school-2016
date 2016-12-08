@@ -28,7 +28,7 @@ import com.vividsolutions.jts.geom.Geometry;
 
 public class ParkingPoseLib {
 	
-	private static int SAMPLE_SIZE = 100;
+	private static int SAMPLE_SIZE = 500;
 	private static int MAX_X = 670;
 	private static int MAX_Y = 460;
 	

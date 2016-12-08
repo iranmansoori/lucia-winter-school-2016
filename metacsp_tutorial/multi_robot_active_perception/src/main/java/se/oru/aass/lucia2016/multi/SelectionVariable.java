@@ -4,6 +4,13 @@ import org.metacsp.framework.ConstraintSolver;
 import org.metacsp.framework.Domain;
 import org.metacsp.framework.Variable;
 
+/**
+ * This variable represents whether a particular view pose has been selected for mapping. It is used as
+ * a ground variable underlying a {@link ViewVariable}.
+ * 
+ * @author iran
+ *
+ */
 public class SelectionVariable extends Variable {
 	
 	private Domain dom;

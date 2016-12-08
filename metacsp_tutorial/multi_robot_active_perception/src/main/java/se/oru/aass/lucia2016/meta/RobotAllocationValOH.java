@@ -5,14 +5,23 @@ import org.metacsp.framework.ConstraintNetwork;
 import org.metacsp.framework.ValueOrderingH;
 
 
-import se.oru.aass.lucia2016.multi.RobotConstraint;
+import se.oru.aass.lucia2016.multi.RobotAllocationConstraint;
 import se.oru.aass.lucia2016.multi.ViewVariable;
 
-public class RobotSelectionValOH extends ValueOrderingH{
+/**
+ * Value ordering heuristic for the {@link RobotAllocationMetaConstraint}. Prefers allocations that are close to current position of robots.
+ * 
+ * @author iran
+ *
+ */
 
-	
+public class RobotAllocationValOH extends ValueOrderingH {
 	
 	ViewCoordinator metaSolver = null;
+	
+	public RobotAllocationValOH(ViewCoordinator metaSolver) {
+		this.metaSolver = metaSolver;
+	}
 	
 	@Override
 	public int compare(ConstraintNetwork arg0, ConstraintNetwork arg1) {
@@ -30,17 +39,13 @@ public class RobotSelectionValOH extends ValueOrderingH{
 	private double getSumDist(Constraint[] cons) {
 		double dist = 0;
 		for (int i = 0; i < cons.length; i++) {
-			RobotConstraint rc =(RobotConstraint)cons[i];
+			RobotAllocationConstraint rc =(RobotAllocationConstraint)cons[i];
 			ViewVariable vv = (ViewVariable)rc.getFrom();
 			org.metacsp.multi.spatioTemporal.paths.Pose vvPose = vv.getTrajectoryEnvelope().getTrajectory().getPose()[0];
 			geometry_msgs.Pose robotPose = metaSolver.getRobotsCurrentPose().get(rc.getRobotId());			
 			dist += Math.sqrt(Math.pow(vvPose.getX() - robotPose.getPosition().getX(), 2) + Math.pow(vvPose.getY() - robotPose.getPosition().getY(), 2));			
 		}
 		return dist;
-	}
-
-	public void setMetaSolver(ViewCoordinator metaSolver) {		
-		this.metaSolver = metaSolver;		
 	}
 
 }

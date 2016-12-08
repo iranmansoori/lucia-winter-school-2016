@@ -125,7 +125,7 @@ public class TestOverallDesign {
 		
 		//adding the meta-constraints
 		ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, new ViewSelectionValOH());
-		viewSelectionMC.setRobotNumber(3);
+		viewSelectionMC.setNumberOfRobots(3);
 		metaSolver.addMetaConstraint(viewSelectionMC);
 		
 		RobotAllocationMetaConstraint RobotAllocationMC = new RobotAllocationMetaConstraint(null, null);
