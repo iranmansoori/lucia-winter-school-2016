@@ -18,7 +18,7 @@ public class DebugMainClass {
 	    URI masterURI = null;
 
 	    try {
-	      masterURI = new URI("http://iran:11311/");
+	      masterURI = new URI("http://localhost:11311/");
 	    } catch(Exception ex) {
 	      System.out.println(ex);
 	    }

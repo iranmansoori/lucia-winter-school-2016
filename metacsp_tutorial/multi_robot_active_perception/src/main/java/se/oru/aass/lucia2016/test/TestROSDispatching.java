@@ -206,7 +206,7 @@ public class TestROSDispatching extends AbstractNodeMain {
 		};		
 		FlapForChaosDispatchingFunction[] dfs = new FlapForChaosDispatchingFunction[NUMBEROFROBOTS];
 		for (int i = 1; i <= NUMBEROFROBOTS; i++) {
-			dfs[i-1] = new FlapForChaosDispatchingFunction("turtlebot"+i, metaSolver, connectedNode);
+			dfs[i-1] = new FlapForChaosDispatchingFunction("turtlebot"+i, viewSolver.getTrajectoryEnvelopeSolver(), connectedNode);
 		}
 		animator.addDispatchingFunctions(ans, dfs);		
 		//tea.setConstraintNetworkAnimator(animator);
