@@ -33,13 +33,13 @@ public class FlapForChaosDispatchingFunction extends DispatchingFunction {
 	private ConnectedNode node = null;
 	private boolean isExecuting = false;
 	private SymbolicVariableActivity currentAct = null;
-	private ViewCoordinator metaSolver = null;
+	private TrajectoryEnvelopeSolver solver = null;
 	Subscriber<actionlib_msgs.GoalStatusArray> actionlibFeedback = null;
 	
-	public FlapForChaosDispatchingFunction(String component, ViewCoordinator metaSolver, ConnectedNode rosNode) {
+	public FlapForChaosDispatchingFunction(String component, TrajectoryEnvelopeSolver solver, ConnectedNode rosNode) {
 		super(component);
 		this.node = rosNode;
-		this.metaSolver = metaSolver;
+		this.solver = solver;
 		
 		//Subscribe to movebase feedback topic
 		if(this.node != null){			
@@ -116,8 +116,7 @@ public class FlapForChaosDispatchingFunction extends DispatchingFunction {
 		else {
 			//call ROS service to send the robot			
 			//get the trajectory envelope that belongs to the paths, and send the last pose to the sendGoal Service
-			TrajectoryEnvelopeSolver teSolver = ((ViewConstraintSolver)this.metaSolver.getConstraintSolvers()[0]).getTrajectoryEnvelopeSolver();
-			Variable[] vars = teSolver.getVariables();
+			Variable[] vars = solver.getVariables();
 			for (int i = 0; i < vars.length; i++) {
 				TrajectoryEnvelope te = (TrajectoryEnvelope)vars[i];
 				if(te.getRobotID() == -1) continue;
