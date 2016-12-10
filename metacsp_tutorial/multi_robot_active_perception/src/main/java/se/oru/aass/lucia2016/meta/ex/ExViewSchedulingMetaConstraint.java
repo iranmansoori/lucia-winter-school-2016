@@ -119,7 +119,6 @@ public class ExViewSchedulingMetaConstraint extends MetaConstraint {
 
 	@Override
 	public void markResolvedSub(MetaVariable con, ConstraintNetwork metaValue) {
-		// TODO Auto-generated method stub
 	}
 	
 	
@@ -337,7 +336,6 @@ public class ExViewSchedulingMetaConstraint extends MetaConstraint {
 
 	@Override
 	public void draw(ConstraintNetwork network) {
-		// TODO Auto-generated method stub	
 	}
 
 	@Override
@@ -352,19 +350,16 @@ public class ExViewSchedulingMetaConstraint extends MetaConstraint {
 
 	@Override
 	public String getEdgeLabel() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public Object clone() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public boolean isEquivalent(Constraint c) {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
