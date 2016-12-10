@@ -77,7 +77,7 @@ public class ViewSchedulingMetaConstraint extends MetaConstraint {
 				for (int j = i+1; j < groundVars.length; j++) {
 					Bounds bi = new Bounds(groundVars[i].getTemporalVariable().getEST(), groundVars[i].getTemporalVariable().getEET());
 					Bounds bj = new Bounds(groundVars[j].getTemporalVariable().getEST(), groundVars[j].getTemporalVariable().getEET());						
-					if (bi.intersectStrict(bj) != null && isConflicting(new Activity[] {groundVars[i], groundVars[j]})) {
+					if (bi.isIntersecting(bj) && isConflicting(new Activity[] {groundVars[i], groundVars[j]})) {
 						ConstraintNetwork cn = new ConstraintNetwork(null);
 						cn.addVariable(groundVars[i].getVariable());
 						cn.addVariable(groundVars[j].getVariable());

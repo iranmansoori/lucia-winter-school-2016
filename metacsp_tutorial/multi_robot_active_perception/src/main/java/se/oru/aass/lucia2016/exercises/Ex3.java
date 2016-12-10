@@ -9,6 +9,7 @@ import org.metacsp.framework.Variable;
 import org.metacsp.framework.multi.MultiConstraintSolver;
 import org.metacsp.framework.multi.MultiVariable;
 import org.metacsp.multi.allenInterval.AllenIntervalConstraint;
+import org.metacsp.multi.spatial.DE9IM.DE9IMRelation;
 import org.metacsp.multi.spatial.DE9IM.DE9IMRelationSolver;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 import org.metacsp.multi.spatioTemporal.paths.Trajectory;
@@ -37,35 +38,41 @@ public class Ex3 {
 		TrajectoryEnvelopeSolver solver = new TrajectoryEnvelopeSolver(0, 1000000, 100);
 		Variable[] vars = solver.createVariables(4);
 
+		//Small robot, 1.4 (w) x 3.4 (l) centered in the middle
+		Coordinate frontLeft = new Coordinate(2.7, 0.7);
+		Coordinate frontRight = new Coordinate(2.7, -0.7);
+		Coordinate backRight = new Coordinate(-1.7, -0.7);
+		Coordinate backLeft = new Coordinate(-1.7, 0.7);
+		
 		vars[0].setComponent("Robot1");
 		TrajectoryEnvelope trajEnvelopeRobot1 = (TrajectoryEnvelope)vars[0];
-		trajEnvelopeRobot1.getSymbolicVariableActivity().setSymbolicDomain("move_base");
+		trajEnvelopeRobot1.getSymbolicVariableActivity().setSymbolicDomain("MoveBase");
 		Trajectory trajRobot1 = new Trajectory("../paths/path1.path");
-		trajEnvelopeRobot1.setFootprint(FootPrintFactory.getTurtlebotFootprint());
+		trajEnvelopeRobot1.setFootprint(backLeft,backRight,frontLeft,frontRight);
 		trajEnvelopeRobot1.setTrajectory(trajRobot1);
 		trajEnvelopeRobot1.setRobotID(1);
 		
 		vars[1].setComponent("Robot2");
 		TrajectoryEnvelope trajEnvelopeRobot2 = (TrajectoryEnvelope)vars[1];
-		trajEnvelopeRobot2.getSymbolicVariableActivity().setSymbolicDomain("move_base");
+		trajEnvelopeRobot2.getSymbolicVariableActivity().setSymbolicDomain("MoveBase");
 		Trajectory trajRobot2 = new Trajectory("../paths/path3.path");
-		trajEnvelopeRobot2.setFootprint(FootPrintFactory.getTurtlebotFootprint());
+		trajEnvelopeRobot2.setFootprint(backLeft,backRight,frontLeft,frontRight);
 		trajEnvelopeRobot2.setTrajectory(trajRobot2);
 		trajEnvelopeRobot2.setRobotID(2);
 
 		vars[2].setComponent("Robot1");
 		TrajectoryEnvelope parkingRobot1 = (TrajectoryEnvelope)vars[2];
-		parkingRobot1.getSymbolicVariableActivity().setSymbolicDomain("parking");
+		parkingRobot1.getSymbolicVariableActivity().setSymbolicDomain("Parking");
 		Trajectory parkingPoseRobot1 = new Trajectory(new Pose[] {trajRobot1.getPose()[0]});
-		parkingRobot1.setFootprint(FootPrintFactory.getTurtlebotFootprint());
+		parkingRobot1.setFootprint(backLeft,backRight,frontLeft,frontRight);
 		parkingRobot1.setTrajectory(parkingPoseRobot1);
 		parkingRobot1.setRobotID(1);
 		
 		vars[3].setComponent("Robot2");
 		TrajectoryEnvelope parkingRobot2 = (TrajectoryEnvelope)vars[3];
-		parkingRobot2.getSymbolicVariableActivity().setSymbolicDomain("parking");
+		parkingRobot2.getSymbolicVariableActivity().setSymbolicDomain("Parking");
 		Trajectory parkingPoseRobot2 = new Trajectory(new Pose[] {trajRobot2.getPose()[0]});
-		parkingRobot2.setFootprint(FootPrintFactory.getTurtlebotFootprint());
+		parkingRobot2.setFootprint(backLeft,backRight,frontLeft,frontRight);
 		parkingRobot2.setTrajectory(parkingPoseRobot2);
 		parkingRobot2.setRobotID(2);
 
@@ -94,7 +101,7 @@ public class Ex3 {
 		releaseMoveRobot1.setTo(trajEnvelopeRobot1);
 		solver.addConstraint(releaseMoveRobot1);
 		
-		AllenIntervalConstraint releaseMoveRobot2 = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Release, new Bounds(20000,APSPSolver.INF));
+		AllenIntervalConstraint releaseMoveRobot2 = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Release, new Bounds(10000,APSPSolver.INF));
 		releaseMoveRobot2.setFrom(trajEnvelopeRobot2);
 		releaseMoveRobot2.setTo(trajEnvelopeRobot2);
 		solver.addConstraint(releaseMoveRobot2);
@@ -103,6 +110,19 @@ public class Ex3 {
 		tea.addTrajectoryEnvelopes(parkingRobot1, parkingRobot2, trajEnvelopeRobot1, trajEnvelopeRobot2);
 				
 		ConstraintNetwork.draw(solver.getConstraintNetwork());
+		
+		//TODO 1: check if the two moving envelopes are spatially disjoint
+		DE9IMRelation disjoint = new DE9IMRelation(DE9IMRelation.Type.Disjoint);
+		disjoint.setFrom(trajEnvelopeRobot1);
+		disjoint.setTo(trajEnvelopeRobot2);
+		if (solver.addConstraints(disjoint)) System.out.println("DISJOINT!");
+		else System.out.println("NOT DISJOINT!");
+		
+		//TODO 2: find temporal overlap of the envelopes (print the temporal domains)
+		if (trajEnvelopeRobot1.getTemporalVariable().isIntersectingEarliestStartTime(trajEnvelopeRobot2.getTemporalVariable())) System.out.println("TEMPORAL OVERLAP!");
+		else System.out.println("NO TEMPORAL OVERLAP!");
+
+		
 	}
 		
 }
