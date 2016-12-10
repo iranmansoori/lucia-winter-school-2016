@@ -60,8 +60,8 @@ public class ViewCoordinator extends MetaConstraintSolver{
 	private static final int MINIMUM_SIZE = 5;
 	private Object semaphore = new Object();
 	private String prefix = "turtlebot";
-	private long timeNow = 0;
 	private OccupancyGrid map = null;
+	private long temporalResolution = 1000;
 	
 	protected ViewCoordinator(Class<?>[] constraintTypes, long animationTime,
 			ConstraintSolver[] internalSolvers) {
@@ -290,7 +290,7 @@ public class ViewCoordinator extends MetaConstraintSolver{
 				solver.getTrajectoryEnvelopeSolver().addConstraint(parking2MeetsVV);
 
 				//Release parking
-				AllenIntervalConstraint release = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Release, new Bounds(timeNow, timeNow));
+				AllenIntervalConstraint release = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Release, new Bounds(getCurrentTime(), getCurrentTime()));
 				release.setFrom(parkingTE);
 				release.setTo(parkingTE);
 				solver.getTrajectoryEnvelopeSolver().addConstraint(release);
@@ -672,11 +672,10 @@ public class ViewCoordinator extends MetaConstraintSolver{
 	public void setROSNode(ConnectedNode connectedNode) {
 		this.connectedNode  = connectedNode;
 	}
-
-	public void setTimeNow(long timeNow) {
-		this.timeNow = timeNow;
-	}
 	
+	public void setTemporalResolution(long tr) {
+		this.temporalResolution = tr;
+	}
 
 	public void setRobotCurrentPose(
 			HashMap<Integer, geometry_msgs.Pose> robotsCurrentPose) {
@@ -685,6 +684,10 @@ public class ViewCoordinator extends MetaConstraintSolver{
 	
 	public HashMap<Integer, geometry_msgs.Pose> getRobotsCurrentPose() {
 		return robotsCurrentPose;
+	}
+	
+	public long getCurrentTime() {
+		return connectedNode.getCurrentTime().totalNsecs()/temporalResolution;
 	}
 
 	public String getPrefix() {

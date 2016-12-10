@@ -1,7 +1,4 @@
 package se.oru.aass.lucia2016.test;
-import geometry_msgs.PoseStamped;
-import geometry_msgs.PoseWithCovarianceStamped;
-
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -9,8 +6,6 @@ import java.util.Random;
 import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import nav_msgs.OccupancyGrid;
 
 import org.metacsp.framework.Constraint;
 import org.metacsp.framework.ConstraintNetwork;
@@ -43,11 +38,9 @@ import org.ros.node.service.ServiceClient;
 import org.ros.node.service.ServiceResponseListener;
 import org.ros.node.topic.Subscriber;
 
-
-import actionlib_msgs.GoalStatus;
-
 import com.vividsolutions.jts.geom.Geometry;
 
+import nav_msgs.OccupancyGrid;
 import se.oru.aass.lucia2016.execution.FlapForChaosDispatchingFunction;
 import se.oru.aass.lucia2016.meta.RobotAllocationMetaConstraint;
 import se.oru.aass.lucia2016.meta.RobotAllocationValOH;
@@ -60,8 +53,6 @@ import se.oru.aass.lucia2016.multi.ViewVariable;
 import se.oru.aass.lucia2016.utility.Convertor;
 import se.oru.aass.lucia2016.utility.FootPrintFactory;
 import se.oru.aass.lucia2016.utility.Lucia16RegionOfInterest;
-import se.oru.aass.lucia2016.utility.ParkingPoseLib;
-import se.oru.aass.lucia2016.utility.PathPlanFactory;
 import uos_active_perception_msgs.GetObservationCameraPoses;
 import uos_active_perception_msgs.GetObservationCameraPosesRequest;
 import uos_active_perception_msgs.GetObservationCameraPosesResponse;
@@ -70,7 +61,7 @@ import uos_active_perception_msgs.GetObservationCameraPosesResponse;
 
 public class TestROSDispatching extends AbstractNodeMain {
 
-	private static final int TEMPORAL_RESOLUTION = 1000000;
+	private static final long TEMPORAL_RESOLUTION = 1000000;
 	private static final int CONTROL_PERIOD = 1000;
 	protected static final float INFOGAIN_THRESHOLD = (float) 0.3;
 	private static Logger metaCSPLogger = MetaCSPLogging.getLogger(TestROSDispatching.class);
@@ -111,7 +102,7 @@ public class TestROSDispatching extends AbstractNodeMain {
 		MetaCSPLogging.setLevel(ViewCoordinator.class, Level.FINEST);
 		metaSolver.setROSNode(connectedNode);
 		metaSolver.setRobotCurrentPose(robotsCurrentPose);
-		metaSolver.setTimeNow(getCurrentTime());
+		metaSolver.setTemporalResolution(TEMPORAL_RESOLUTION);
 		metaSolver.setMap(map);
 				
 		//adding the meta-constraints

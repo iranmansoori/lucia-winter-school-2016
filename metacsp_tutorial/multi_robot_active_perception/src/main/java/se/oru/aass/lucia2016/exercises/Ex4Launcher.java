@@ -8,7 +8,7 @@ import org.ros.node.NodeMain;
 import org.ros.node.NodeMainExecutor;
 
 
-public class ROSLaunchHelper {
+public class Ex4Launcher {
 	
 	public static void main(String [ ] argv)
 	  {

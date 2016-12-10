@@ -50,8 +50,8 @@ public class FootPrintFactory {
 	public static Coordinate[] getFoVCoordinates(){
 		Coordinate[] ret = new Coordinate[3];		
 		ret[0] = new Coordinate(0.0, 0.0);
-		ret[1] = new Coordinate(3.5, 1.5);
-		ret[2] = new Coordinate(3.5, -1.5);
+		ret[1] = new Coordinate(1.6, 0.9);
+		ret[2] = new Coordinate(1.6, -0.9);
 		return ret;
 	}
 	

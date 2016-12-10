@@ -1,5 +1,6 @@
 package se.oru.aass.lucia2016.meta;
 
+import java.util.ArrayList;
 import java.util.Vector;
 
 import org.metacsp.framework.ConstraintNetwork;
@@ -22,7 +23,8 @@ import se.oru.aass.lucia2016.multi.ViewVariable;
  */
 public class ViewSelectionValOH extends ValueOrderingH{
 
-	private static double alpha = 0.6;
+	private static double alpha = 0.0;
+	//private static double beta = 0.7;
 	
 	@Override
 	public int compare(ConstraintNetwork arg0, ConstraintNetwork arg1) {
@@ -37,30 +39,33 @@ public class ViewSelectionValOH extends ValueOrderingH{
 			vvs0.add(vv0);
 			vvs1.add(vv1);
 		}
-		double sumDist0 = getSumDistance(vvs0);
-		double sumDist1 = getSumDistance(vvs1);
 		
-		double sumInfoGain0 = getSumInfoGain(vvs0);
-		double sumInfoGain1 = getSumInfoGain(vvs1);
+		double avgInfoGain0 = getAverageInfoGain(vvs0);
+		double avgInfoGain1 = getAverageInfoGain(vvs1);
 		
-		double hr0 = (1 - alpha) * sumDist0 + alpha * sumInfoGain0;
-		double hr1 = (1 - alpha) * sumDist1 + alpha * sumInfoGain1;
+		double separationDegree0 = getDegreeOfNonOverlappingOfFoVs(vvs0);
+		double separationDegree1 = getDegreeOfNonOverlappingOfFoVs(vvs1);
+
+		double hr0 = alpha*avgInfoGain0 + (1.0-alpha)*separationDegree0;
+		double hr1 = alpha*avgInfoGain1 + (1.0-alpha)*separationDegree1;
 		
+		System.out.println("Comparing (" + avgInfoGain0 + "," + separationDegree0 + ") and (" + avgInfoGain1 + "," + separationDegree1 + ")");
+
 		if(hr0 < hr1) return 1;
 		if(hr0 > hr1) return -1;
 		return 0;
 	}
 
-	private double getSumInfoGain(Vector<ViewVariable> vvs) {
+	private double getAverageInfoGain(Vector<ViewVariable> vvs) {
 		double sum = 0.0; 
 		for (int i = 0; i < vvs.size(); i++) {
-			sum += vvs.get(i).getInfoGain();				
+			sum += vvs.get(i).getInfoGain();
 		}
-		return sum;
+		return sum/(double)vvs.size();
 	}
-
-	private double getSumDistance(Vector<ViewVariable> vvs) {
-		double sum = 0.0; 
+	
+	private double getDegreeOfNonOverlappingOfFoVs(Vector<ViewVariable> vvs) {
+		double maxCover = 0.0;
 		for (int i = 0; i < vvs.size(); i++) {
 			for (int j = 0; j < vvs.size(); j++) {
 				if(i == j) continue;
@@ -68,11 +73,16 @@ public class ViewSelectionValOH extends ValueOrderingH{
 						getEnvelopeVariable().getDomain()).getGeometry();
 				Geometry shape2 = ((GeometricShapeDomain)vvs.get(j).getTrajectoryEnvelope().
 						getEnvelopeVariable().getDomain()).getGeometry();
-				sum += shape1.distance(shape2);
-			}			
+				double intArea = shape1.intersection(shape2).getArea();
+				System.out.println("INT AREA IS " + intArea);
+				double percentCover1 = intArea/shape1.getArea();
+				double percentCover2 = intArea/shape2.getArea();
+				double maxPercentCover = Math.max(percentCover1, percentCover2);
+				if (maxPercentCover > maxCover) maxCover = maxPercentCover;
+			}
 		}
-		return sum;
-	}	
+		return (1.0-maxCover);
+	}
 		
 	public static void setAlpha(double alpha) {
 		ViewSelectionValOH.alpha = alpha;

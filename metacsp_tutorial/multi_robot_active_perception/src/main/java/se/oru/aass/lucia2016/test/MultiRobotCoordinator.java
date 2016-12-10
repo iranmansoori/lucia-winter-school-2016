@@ -7,8 +7,6 @@ import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import nav_msgs.OccupancyGrid;
-
 import org.metacsp.framework.Constraint;
 import org.metacsp.framework.ConstraintNetwork;
 import org.metacsp.framework.ValueOrderingH;
@@ -39,6 +37,7 @@ import org.ros.node.service.ServiceResponseListener;
 import org.ros.node.topic.Publisher;
 import org.ros.node.topic.Subscriber;
 
+import nav_msgs.OccupancyGrid;
 import se.oru.aass.lucia2016.execution.FlapForChaosDispatchingFunction;
 import se.oru.aass.lucia2016.meta.RobotAllocationMetaConstraint;
 import se.oru.aass.lucia2016.meta.RobotAllocationValOH;
@@ -59,8 +58,8 @@ import uos_active_perception_msgs.GetObservationCameraPosesResponse;
 
 public class MultiRobotCoordinator extends AbstractNodeMain {
 
-	private static final int TEMPORAL_RESOLUTION = 1000000;
-	private static final int CONTROL_PERIOD = 1000;
+	private static final long TEMPORAL_RESOLUTION = 1000000;
+	private static final long CONTROL_PERIOD = 1000;
 	protected static final float INFOGAIN_THRESHOLD = (float) 0.3;
 	private static Logger metaCSPLogger = MetaCSPLogging.getLogger(MultiRobotCoordinator.class);
 	private ConnectedNode connectedNode;
@@ -104,7 +103,7 @@ public class MultiRobotCoordinator extends AbstractNodeMain {
 		MetaCSPLogging.setLevel(ViewCoordinator.class, Level.FINEST);
 		metaSolver.setROSNode(connectedNode);
 		metaSolver.setRobotCurrentPose(robotsCurrentPose);
-		metaSolver.setTimeNow(getCurrentTime());
+		metaSolver.setTemporalResolution(TEMPORAL_RESOLUTION);
 		metaSolver.setMap(map);
 				
 		//Define and add the meta-constraints:
@@ -131,6 +130,18 @@ public class MultiRobotCoordinator extends AbstractNodeMain {
 		});
 	}
 	
+	private void delayEndOfParkingUntilNow() {
+		for (Variable var : (viewSolver.getConstraintSolvers()[0]).getVariables()) {
+			TrajectoryEnvelope te = (TrajectoryEnvelope)var;
+			if (te.getSymbolicVariableActivity().getSymbols()[0].equals("Parking")) {
+				AllenIntervalConstraint deadline = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Deadline, new Bounds(getCurrentTime(), APSPSolver.INF));
+				deadline.setFrom(te);
+				deadline.setTo(te);
+				(viewSolver.getConstraintSolvers()[0]).addConstraint(deadline);
+			}
+		}
+	}
+	
 	// Start threads for online solving, plan dispatching, and execution monitoring
 	public void setupMonitoring() {
 	
@@ -154,6 +165,7 @@ public class MultiRobotCoordinator extends AbstractNodeMain {
 						}
 					}
 					metaCSPLogger.info("== END SOLUTION ==");
+					delayEndOfParkingUntilNow();
 					//show a timeline
 					TimelinePublisher tp = new TimelinePublisher(ans.getConstraintNetwork(), new Bounds(0,60000), true, "Time", "turtlebot1", "turtlebot2", "turtlebot3");
 					TimelineVisualizer tv = new TimelineVisualizer(tp);
