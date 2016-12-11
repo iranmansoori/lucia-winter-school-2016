@@ -90,19 +90,6 @@ public class Ex5AndEx6 extends MetaConstraint {
 			//--this is how you create a ConstraintNetwork and add a variable to it
 			//ConstraintNetwork cn = new ConstraintNetwork(null);
 			//cn.addVariable(groundVars[INDEX].getVariable());
-
-			for (int i = 0; i < groundVars.length-1; i++) {
-				for (int j = i+1; j < groundVars.length; j++) {
-					Bounds bi = new Bounds(groundVars[i].getTemporalVariable().getEST(), groundVars[i].getTemporalVariable().getEET());
-					Bounds bj = new Bounds(groundVars[j].getTemporalVariable().getEST(), groundVars[j].getTemporalVariable().getEET());						
-					if (bi.intersectStrict(bj) != null && isConflicting(new Activity[] {groundVars[i], groundVars[j]})) {
-						ConstraintNetwork cn = new ConstraintNetwork(null);
-						cn.addVariable(groundVars[i].getVariable());
-						cn.addVariable(groundVars[j].getVariable());
-						ret.add(cn);
-					}
-				}
-			}
 			
 			if (!ret.isEmpty()) {
 				return ret.toArray(new ConstraintNetwork[ret.size()]);			
@@ -184,12 +171,7 @@ public class Ex5AndEx6 extends MetaConstraint {
 		// two polygons poly1 and poly2, then you can check if this contains a relation of type
 		// DE9IMRelation.Type.Disjoint
 
-		for (DE9IMRelation.Type t : DE9IMRelation.getRelations(poly1, poly2)) {
-			if (t.equals(DE9IMRelation.Type.Disjoint)) return false;
-		}
-		return true;
-
-		//		return false;
+		return false;
 	}
 
 	@Override
@@ -281,12 +263,8 @@ public class Ex5AndEx6 extends MetaConstraint {
 		ViewConstraintSolver viewSolver= (ViewConstraintSolver)this.getGroundSolver();
 		ArrayList<ConstraintNetwork> ret = new ArrayList<ConstraintNetwork>();
 
+		//TODO 3a: add an appropriate temporal constraint to resolver1
 		ConstraintNetwork resolver1 = new ConstraintNetwork(null);
-		AllenIntervalConstraint vv1FPBeforeVv2FP = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before);
-		vv1FPBeforeVv2FP.setFrom(vv1);			
-		vv1FPBeforeVv2FP.setTo(vv2);
-		resolver1.addConstraint(vv1FPBeforeVv2FP);		
-		ret.add(resolver1);
 
 		ConstraintNetwork resolver2 = new ConstraintNetwork(null);
 		TrajectoryEnvelope moveAwayTE = getMoveOut(vv2.getTrajectoryEnvelope().getRobotID());
@@ -295,20 +273,16 @@ public class Ex5AndEx6 extends MetaConstraint {
 			VariablePrototype moveOut = new VariablePrototype(viewSolver.getTrajectoryEnvelopeSolver(), metaSolver.getPrefix() + vv2.getTrajectoryEnvelope().getRobotID(),vv2.getTrajectoryEnvelope().getFootprint(),vv2.getTrajectoryEnvelope().getRobotID(), false);
 			resolver2.addVariable(moveOut);					
 
-			AllenIntervalConstraint beforeMoveout = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before);
-			beforeMoveout.setFrom(moveOut);			
-			beforeMoveout.setTo(vv1.getTrajectoryEnvelope());
-			resolver2.addConstraint(beforeMoveout);
-
-			AllenIntervalConstraint senseMeetsMoveAway = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Meets);
-			senseMeetsMoveAway.setFrom(vv2.getTrajectoryEnvelope());
-			senseMeetsMoveAway.setTo(moveOut);
-			resolver2.addConstraint(senseMeetsMoveAway);
+			//TODO 3b: add appropriate temporal constraints between the variable moveOut created above
+			//         and the trajectory envelopes of ViewVariables vv1 and vv2, then
+			//         put everything in resolver2
 
 		}
 		else getViewVarViewVarResolverHelper(vv1, moveAwayTE, resolver2);
 
 		ret.add(resolver2);
+		
+		//return resolver1 and resolver2
 		return ret;
 	}
 
