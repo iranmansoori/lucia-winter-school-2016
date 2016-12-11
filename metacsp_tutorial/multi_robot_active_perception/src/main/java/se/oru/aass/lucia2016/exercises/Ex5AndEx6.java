@@ -281,6 +281,7 @@ public class Ex5AndEx6 extends MetaConstraint {
 		ViewConstraintSolver viewSolver= (ViewConstraintSolver)this.getGroundSolver();
 		ArrayList<ConstraintNetwork> ret = new ArrayList<ConstraintNetwork>();
 
+		//TODO 3a: add an appropriate temporal constraint to resolver1
 		ConstraintNetwork resolver1 = new ConstraintNetwork(null);
 		AllenIntervalConstraint vv1FPBeforeVv2FP = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before);
 		vv1FPBeforeVv2FP.setFrom(vv1);			
@@ -292,6 +293,10 @@ public class Ex5AndEx6 extends MetaConstraint {
 		TrajectoryEnvelope moveAwayTE = getMoveOut(vv2.getTrajectoryEnvelope().getRobotID());
 
 		if(moveAwayTE == null){
+			//TODO 3b: add appropriate temporal constraints between the variable moveOut created above
+			//         and the trajectory envelopes of ViewVariables vv1 and vv2, then
+			//         put everything in resolver2
+
 			VariablePrototype moveOut = new VariablePrototype(viewSolver.getTrajectoryEnvelopeSolver(), metaSolver.getPrefix() + vv2.getTrajectoryEnvelope().getRobotID(),vv2.getTrajectoryEnvelope().getFootprint(),vv2.getTrajectoryEnvelope().getRobotID(), false);
 			resolver2.addVariable(moveOut);					
 
