@@ -138,26 +138,11 @@ public class Ex4 extends AbstractNodeMain {
 		boolean spatiallyOverlapping = false;
 		boolean temporallyOverlapping = false;
 		
-		DE9IMRelation disjoint = new DE9IMRelation(DE9IMRelation.Type.Disjoint);
-		disjoint.setFrom(trajectoryEnvelopeRobot1);
-		disjoint.setTo(trajectoryEnvelopeRobot2);
-		if (!trajectoryEnvelopeSolver.addConstraints(disjoint)) spatiallyOverlapping = true;
+		//insert code here
 		
-		long earliestStartTimeRobot1 = trajectoryEnvelopeRobot1.getTemporalVariable().getEST();
-		long earliestEndTimeRobot1 = trajectoryEnvelopeRobot1.getTemporalVariable().getEET();
-		long earliestStartTimeRobot2 = trajectoryEnvelopeRobot2.getTemporalVariable().getEST();
-		long earliestEndTimeRobot2 = trajectoryEnvelopeRobot2.getTemporalVariable().getEET();
-		Bounds b1 = new Bounds(earliestStartTimeRobot1,earliestEndTimeRobot1);
-		Bounds b2 = new Bounds(earliestStartTimeRobot2,earliestEndTimeRobot2);
-		if (b1.isIntersecting(b2)) temporallyOverlapping = true;
-
 		//Make turtlebot2 goes before turtlebot1
 		if (temporallyOverlapping && spatiallyOverlapping) {
-			metaCSPLogger.info("Have spatio-temporal overlap, adding before constraint...");
-			AllenIntervalConstraint robot2BeforeRobot1 = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before, new Bounds(1,APSPSolver.INF));
-			robot2BeforeRobot1.setFrom(trajectoryEnvelopeRobot2);
-			robot2BeforeRobot1.setTo(trajectoryEnvelopeRobot1);
-			trajectoryEnvelopeSolver.addConstraint(robot2BeforeRobot1);
+			//insert code here
 		}
 		
 		//Visualize everything
