@@ -45,10 +45,8 @@ public class Ex7 extends ValueOrderingH{
 		double avgInfoGain0 = getAverageInfoGain(vvs0);
 		double avgInfoGain1 = getAverageInfoGain(vvs1);
 		
-		//TODO 1: add another criteria to information gain, which
-		//        accounts for FoV overlap, e.g., compute degree of
-		//        overlap of FoVs in the two selections being compared
-		//You are given the following:
+		//TODO 1: add another criteria to information gain
+		//the following methods are given in case you need:
 		// -- getAreaOfFoV, computes area of the FoV of a ViewVariable
 		// -- getAreaOfFovIntersection, computes the area of the intersection of two ViewVariables' FoVs
 		double hr0 = avgInfoGain0;
