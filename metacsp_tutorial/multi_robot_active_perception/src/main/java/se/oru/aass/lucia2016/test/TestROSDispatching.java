@@ -42,12 +42,12 @@ import com.vividsolutions.jts.geom.Geometry;
 
 import nav_msgs.OccupancyGrid;
 import se.oru.aass.lucia2016.execution.FlapForChaosDispatchingFunction;
+import se.oru.aass.lucia2016.exercises.Ex5AndEx6;
+import se.oru.aass.lucia2016.exercises.Ex7;
 import se.oru.aass.lucia2016.meta.RobotAllocationMetaConstraint;
 import se.oru.aass.lucia2016.meta.RobotAllocationValOH;
 import se.oru.aass.lucia2016.meta.ViewCoordinator;
-import se.oru.aass.lucia2016.meta.ViewSchedulingMetaConstraint;
 import se.oru.aass.lucia2016.meta.ViewSelectionMetaConstraint;
-import se.oru.aass.lucia2016.meta.ViewSelectionValOH;
 import se.oru.aass.lucia2016.multi.ViewConstraintSolver;
 import se.oru.aass.lucia2016.multi.ViewVariable;
 import se.oru.aass.lucia2016.utility.Convertor;
@@ -106,7 +106,7 @@ public class TestROSDispatching extends AbstractNodeMain {
 		metaSolver.setMap(map);
 				
 		//adding the meta-constraints
-		ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, new ViewSelectionValOH());	
+		ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, new Ex7());	
 		//ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, null);		
 		viewSelectionMC.setNumberOfRobots(NUMBEROFROBOTS);
 		metaSolver.addMetaConstraint(viewSelectionMC);
@@ -115,7 +115,7 @@ public class TestROSDispatching extends AbstractNodeMain {
 		RobotAllocationMetaConstraint robotAllocationMC = new RobotAllocationMetaConstraint(null, robotSelectionValOH);
 		metaSolver.addMetaConstraint(robotAllocationMC);
 		
-		ViewSchedulingMetaConstraint viewSchedulingMC = new ViewSchedulingMetaConstraint(null, null);
+		Ex5AndEx6 viewSchedulingMC = new Ex5AndEx6(null, null);
 		metaSolver.addMetaConstraint(viewSchedulingMC);
 
 		final Random rand = new Random(Calendar.getInstance().getTimeInMillis());
@@ -294,10 +294,10 @@ public class TestROSDispatching extends AbstractNodeMain {
 		}
 		
 		//seting the usage
-		ViewSchedulingMetaConstraint viewSchedulingMC = null;
+		Ex5AndEx6 viewSchedulingMC = null;
 		for (int i = 0; i < metaSolver.getMetaConstraints().length; i++) {			
-			if(metaSolver.getMetaConstraints()[i] instanceof ViewSchedulingMetaConstraint){
-				viewSchedulingMC = (ViewSchedulingMetaConstraint)metaSolver.getMetaConstraints()[i];
+			if(metaSolver.getMetaConstraints()[i] instanceof Ex5AndEx6){
+				viewSchedulingMC = (Ex5AndEx6)metaSolver.getMetaConstraints()[i];
 				break;
 			}
 		}

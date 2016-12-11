@@ -37,11 +37,12 @@ import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
 
+import se.oru.aass.lucia2016.execution.MultiRobotCoordinator;
+import se.oru.aass.lucia2016.exercises.Ex5AndEx6;
 import se.oru.aass.lucia2016.multi.RobotAllocationConstraint;
 import se.oru.aass.lucia2016.multi.ViewSelectionConstraint;
 import se.oru.aass.lucia2016.multi.ViewConstraintSolver;
 import se.oru.aass.lucia2016.multi.ViewVariable;
-import se.oru.aass.lucia2016.test.MultiRobotCoordinator;
 import se.oru.aass.lucia2016.utility.Convertor;
 import se.oru.aass.lucia2016.utility.ParkingPoseLib;
 import se.oru.aass.lucia2016.utility.PathPlanFactory;
@@ -98,10 +99,10 @@ public class ViewCoordinator extends MetaConstraintSolver{
 			ConstraintNetwork metaValue) {
 		ViewConstraintSolver solver = (ViewConstraintSolver)this.getConstraintSolvers()[0];
 		Constraint[] cons = metaValue.getConstraints();
-		ViewSchedulingMetaConstraint ViewSchedulingMC = null; 
+		Ex5AndEx6 ViewSchedulingMC = null; 
 		for (int i = 0; i < this.getMetaConstraints().length; i++) {
-			if(this.getMetaConstraints()[i] instanceof ViewSchedulingMetaConstraint){
-				ViewSchedulingMC = (ViewSchedulingMetaConstraint)this.getMetaConstraints()[i];
+			if(this.getMetaConstraints()[i] instanceof Ex5AndEx6){
+				ViewSchedulingMC = (Ex5AndEx6)this.getMetaConstraints()[i];
 			}
 		}
 		Vector<Variable> trajectoryEnvToRemove = new Vector<Variable>();
@@ -159,10 +160,10 @@ public class ViewCoordinator extends MetaConstraintSolver{
 		robotToPath.put(2, "paths/rid1_task3.path");
 		robotToPath.put(3, "paths/rid1_task5.path");
 
-		ViewSchedulingMetaConstraint viewSchedulingMC = null; 
+		Ex5AndEx6 viewSchedulingMC = null; 
 		for (int i = 0; i < this.getMetaConstraints().length; i++) {
-			if(this.getMetaConstraints()[i] instanceof ViewSchedulingMetaConstraint){
-				viewSchedulingMC = (ViewSchedulingMetaConstraint)this.getMetaConstraints()[i];
+			if(this.getMetaConstraints()[i] instanceof Ex5AndEx6){
+				viewSchedulingMC = (Ex5AndEx6)this.getMetaConstraints()[i];
 			}
 		}
 

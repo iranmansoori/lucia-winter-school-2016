@@ -37,9 +37,9 @@ import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Point;
 
 import se.oru.aass.lucia2016.execution.FlapForChaosDispatchingFunction;
+import se.oru.aass.lucia2016.execution.MultiRobotCoordinator;
 import se.oru.aass.lucia2016.meta.ViewCoordinator;
 import se.oru.aass.lucia2016.multi.ViewConstraintSolver;
-import se.oru.aass.lucia2016.test.MultiRobotCoordinator;
 import se.oru.aass.lucia2016.utility.Convertor;
 import se.oru.aass.lucia2016.utility.FootPrintFactory;
 import se.oru.aass.lucia2016.utility.PathPlanFactory;

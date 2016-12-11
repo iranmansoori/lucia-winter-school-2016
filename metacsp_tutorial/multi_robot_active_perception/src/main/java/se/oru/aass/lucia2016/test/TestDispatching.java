@@ -32,9 +32,9 @@ import org.metacsp.utility.timelinePlotting.TimelinePublisher;
 import org.metacsp.utility.timelinePlotting.TimelineVisualizer;
 
 import se.oru.aass.lucia2016.execution.FlapForChaosDispatchingFunction;
+import se.oru.aass.lucia2016.exercises.Ex5AndEx6;
 import se.oru.aass.lucia2016.meta.RobotAllocationMetaConstraint;
 import se.oru.aass.lucia2016.meta.ViewCoordinator;
-import se.oru.aass.lucia2016.meta.ViewSchedulingMetaConstraint;
 import se.oru.aass.lucia2016.meta.ViewSelectionMetaConstraint;
 import se.oru.aass.lucia2016.multi.RobotAllocationConstraint;
 import se.oru.aass.lucia2016.multi.ViewSelectionConstraint;
@@ -142,7 +142,7 @@ public class TestDispatching {
 		RobotAllocationMetaConstraint RobotAllocationMC = new RobotAllocationMetaConstraint(null, null);
 		metaSolver.addMetaConstraint(RobotAllocationMC);
 		
-		ViewSchedulingMetaConstraint viewSchedulingMC = new ViewSchedulingMetaConstraint(null, null);
+		Ex5AndEx6 viewSchedulingMC = new Ex5AndEx6(null, null);
 		metaSolver.addMetaConstraint(viewSchedulingMC);
 		viewSchedulingMC.setUsage(vv1,vv2,vv3);
 

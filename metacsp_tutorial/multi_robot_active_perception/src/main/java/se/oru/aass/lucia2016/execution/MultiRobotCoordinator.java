@@ -1,4 +1,4 @@
-package se.oru.aass.lucia2016.test;
+package se.oru.aass.lucia2016.execution;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -38,13 +38,12 @@ import org.ros.node.topic.Publisher;
 import org.ros.node.topic.Subscriber;
 
 import nav_msgs.OccupancyGrid;
-import se.oru.aass.lucia2016.execution.FlapForChaosDispatchingFunction;
+import se.oru.aass.lucia2016.exercises.Ex5AndEx6;
+import se.oru.aass.lucia2016.exercises.Ex7;
 import se.oru.aass.lucia2016.meta.RobotAllocationMetaConstraint;
 import se.oru.aass.lucia2016.meta.RobotAllocationValOH;
 import se.oru.aass.lucia2016.meta.ViewCoordinator;
-import se.oru.aass.lucia2016.meta.ViewSchedulingMetaConstraint;
 import se.oru.aass.lucia2016.meta.ViewSelectionMetaConstraint;
-import se.oru.aass.lucia2016.meta.ViewSelectionValOH;
 import se.oru.aass.lucia2016.multi.ViewConstraintSolver;
 import se.oru.aass.lucia2016.multi.ViewVariable;
 import se.oru.aass.lucia2016.utility.Convertor;
@@ -108,7 +107,7 @@ public class MultiRobotCoordinator extends AbstractNodeMain {
 				
 		//Define and add the meta-constraints:
 		//  1. ViewSelectionMetaConstraint: selects view poses to navigate to 
-		ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, new ViewSelectionValOH());	
+		ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, new Ex7());	
 		viewSelectionMC.setNumberOfRobots(NUMBEROFROBOTS);
 		metaSolver.addMetaConstraint(viewSelectionMC);
 		
@@ -118,7 +117,7 @@ public class MultiRobotCoordinator extends AbstractNodeMain {
 		metaSolver.addMetaConstraint(robotAllocationMC);
 		
 		//  3. ViewSchedulingMetaConstraint: ensures that trajectory envelopes do not obstruct FoV of robots in view poses
-		ViewSchedulingMetaConstraint viewSchedulingMC = new ViewSchedulingMetaConstraint(null, null);
+		Ex5AndEx6 viewSchedulingMC = new Ex5AndEx6(null, null);
 		metaSolver.addMetaConstraint(viewSchedulingMC);
 		//  Note: this meta-constraint has a random value ordering heuristic, so we get some variation even offline
 		final Random rand = new Random(Calendar.getInstance().getTimeInMillis());
@@ -296,10 +295,10 @@ public class MultiRobotCoordinator extends AbstractNodeMain {
 		}
 		
 		//seting the usage
-		ViewSchedulingMetaConstraint viewSchedulingMC = null;
+		Ex5AndEx6 viewSchedulingMC = null;
 		for (int i = 0; i < metaSolver.getMetaConstraints().length; i++) {			
-			if(metaSolver.getMetaConstraints()[i] instanceof ViewSchedulingMetaConstraint){
-				viewSchedulingMC = (ViewSchedulingMetaConstraint)metaSolver.getMetaConstraints()[i];
+			if(metaSolver.getMetaConstraints()[i] instanceof Ex5AndEx6){
+				viewSchedulingMC = (Ex5AndEx6)metaSolver.getMetaConstraints()[i];
 				break;
 			}
 		}
