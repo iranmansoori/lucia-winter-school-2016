@@ -1,6 +1,4 @@
 package se.oru.aass.lucia2016.exercises;
-import java.util.logging.Level;
-
 import org.metacsp.framework.ConstraintNetwork;
 import org.metacsp.framework.ConstraintSolver;
 import org.metacsp.framework.Variable;
@@ -15,12 +13,10 @@ import org.metacsp.multi.spatioTemporal.paths.TrajectoryEnvelopeSolver;
 import org.metacsp.time.APSPSolver;
 import org.metacsp.time.Bounds;
 import org.metacsp.utility.UI.TrajectoryEnvelopeAnimator;
-import org.metacsp.utility.logging.MetaCSPLogging;
 
 import com.vividsolutions.jts.geom.Coordinate;
 
 import edu.uci.ics.jung.graph.DelegateTree;
-import se.oru.aass.lucia2016.meta.ViewCoordinator;
 
 public class Ex1 {
 	

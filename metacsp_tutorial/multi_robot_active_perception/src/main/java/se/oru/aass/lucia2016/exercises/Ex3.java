@@ -112,15 +112,8 @@ public class Ex3 {
 		ConstraintNetwork.draw(solver.getConstraintNetwork());
 		
 		//TODO 1: check if the two moving envelopes are spatially disjoint
-		DE9IMRelation disjoint = new DE9IMRelation(DE9IMRelation.Type.Disjoint);
-		disjoint.setFrom(trajEnvelopeRobot1);
-		disjoint.setTo(trajEnvelopeRobot2);
-		if (solver.addConstraints(disjoint)) System.out.println("DISJOINT!");
-		else System.out.println("NOT DISJOINT!");
 		
 		//TODO 2: find temporal overlap of the envelopes (print the temporal domains)
-		if (trajEnvelopeRobot1.getTemporalVariable().isIntersectingEarliestStartTime(trajEnvelopeRobot2.getTemporalVariable())) System.out.println("TEMPORAL OVERLAP!");
-		else System.out.println("NO TEMPORAL OVERLAP!");
 
 		
 	}
