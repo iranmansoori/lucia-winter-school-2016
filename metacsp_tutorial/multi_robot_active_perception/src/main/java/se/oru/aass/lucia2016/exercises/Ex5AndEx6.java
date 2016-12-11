@@ -235,21 +235,16 @@ public class Ex5AndEx6 extends MetaConstraint {
 		return ret.toArray(new ConstraintNetwork[ret.size()]);
 	}
 
+	//TODO 4: complete the method below 
 	private ArrayList<ConstraintNetwork> getViewVarTrajResolver(ViewVariable vv1, TrajectoryEnvelope te2) {
 		ArrayList<ConstraintNetwork> ret = new ArrayList<ConstraintNetwork>();
 
 		ConstraintNetwork resolver1 = new ConstraintNetwork(null);
-		AllenIntervalConstraint vv1FPBeforeTe2 = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before);
-		vv1FPBeforeTe2.setFrom(vv1.getTrajectoryEnvelope());			
-		vv1FPBeforeTe2.setTo(te2);
-		resolver1.addConstraint(vv1FPBeforeTe2);
+		// insert code here
 		ret.add(resolver1);
 
 		ConstraintNetwork resolver2 = new ConstraintNetwork(null);
-		AllenIntervalConstraint te2FPBeforeVv1 = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before);
-		te2FPBeforeVv1.setFrom(te2);			
-		te2FPBeforeVv1.setTo(vv1.getTrajectoryEnvelope());
-		resolver2.addConstraint(te2FPBeforeVv1);
+		// insert code here
 		ret.add(resolver2);
 
 		return ret;
@@ -265,7 +260,9 @@ public class Ex5AndEx6 extends MetaConstraint {
 
 		//TODO 3a: add an appropriate temporal constraint to resolver1
 		ConstraintNetwork resolver1 = new ConstraintNetwork(null);
-
+		// insert code here
+		ret.add(resolver1);
+		
 		ConstraintNetwork resolver2 = new ConstraintNetwork(null);
 		TrajectoryEnvelope moveAwayTE = getMoveOut(vv2.getTrajectoryEnvelope().getRobotID());
 
@@ -294,43 +291,29 @@ public class Ex5AndEx6 extends MetaConstraint {
 		ViewConstraintSolver viewSolver= (ViewConstraintSolver)this.getGroundSolver();
 		ArrayList<ConstraintNetwork> ret = new ArrayList<ConstraintNetwork>();
 
-		//RESOLVER 1: vv2.footprint BEFORE vv1.footprint
 		ConstraintNetwork resolver1 = new ConstraintNetwork(null);
 		TrajectoryEnvelope moveAwayTE2 = getMoveOut(vv1.getTrajectoryEnvelope().getRobotID());
 		if(moveAwayTE2 == null){
 			VariablePrototype moveOut = new VariablePrototype(viewSolver.getTrajectoryEnvelopeSolver(), metaSolver.getPrefix() + vv1.getTrajectoryEnvelope().getRobotID(),vv1.getTrajectoryEnvelope().getFootprint(),vv1.getTrajectoryEnvelope().getRobotID(), false);
 			resolver1.addVariable(moveOut);					
 
-			AllenIntervalConstraint beforeMoveout = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before);
-			beforeMoveout.setFrom(moveOut);			
-			beforeMoveout.setTo(vv2.getTrajectoryEnvelope());
-			resolver1.addConstraint(beforeMoveout);
-
-			AllenIntervalConstraint senseMeetsMoveAway = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Meets);
-			senseMeetsMoveAway.setFrom(vv1.getTrajectoryEnvelope());
-			senseMeetsMoveAway.setTo(moveOut);
-			resolver1.addConstraint(senseMeetsMoveAway);
+			//TODO 3c: add appropriate temporal constraints between the variable moveOut created above
+			//         and the trajectory envelopes of ViewVariables vv1 and vv2, then
+			//         put everything in resolver1
 
 		}
 		else getViewVarViewVarResolverHelper(vv2, moveAwayTE2, resolver1);
 		ret.add(resolver1);
 
-		//RESOLVER 2: vv1.footprint BEFORE vv2.footprint
 		ConstraintNetwork resolver2 = new ConstraintNetwork(null);
 		TrajectoryEnvelope moveAwayTE1 = getMoveOut(vv2.getTrajectoryEnvelope().getRobotID());
 		if(moveAwayTE1 == null){
 			VariablePrototype moveOut = new VariablePrototype(viewSolver.getTrajectoryEnvelopeSolver(), metaSolver.getPrefix() + vv2.getTrajectoryEnvelope().getRobotID(),vv2.getTrajectoryEnvelope().getFootprint(),vv2.getTrajectoryEnvelope().getRobotID(), false);
 			resolver2.addVariable(moveOut);					
 
-			AllenIntervalConstraint beforeMoveout = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before);
-			beforeMoveout.setFrom(moveOut);			
-			beforeMoveout.setTo(vv1.getTrajectoryEnvelope());
-			resolver2.addConstraint(beforeMoveout);
-
-			AllenIntervalConstraint senseMeetsMoveAway = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Meets);
-			senseMeetsMoveAway.setFrom(vv2.getTrajectoryEnvelope());
-			senseMeetsMoveAway.setTo(moveOut);
-			resolver2.addConstraint(senseMeetsMoveAway);
+			//TODO 3d: add appropriate temporal constraints between the variable moveOut created above
+			//         and the trajectory envelopes of ViewVariables vv1 and vv2, then
+			//         put everything in resolver2
 
 		}
 		else getViewVarViewVarResolverHelper(vv1, moveAwayTE1, resolver2);
