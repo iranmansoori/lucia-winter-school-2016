@@ -13,7 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   image_transport
   message_generation
   actionlib
-  nav_msgs
+  services
 )
 
 find_package( OpenCV REQUIRED )
@@ -98,7 +98,7 @@ catkin_package(
 #  LIBRARIES lucia_services
 #  CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
-  CATKIN_DEPENDS message_runtime
+  CATKIN_DEPENDS message_runtime services std_msgs sensor_msgs
 )
 
 ###########
@@ -122,7 +122,7 @@ add_executable(lucia_services_node src/lucia_services.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-# add_dependencies(lucia_services_node lucia_services_generate_messages_cpp)
+add_dependencies(lucia_services_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
  target_link_libraries(lucia_services_node
