@@ -45,7 +45,8 @@ public class Ex2 {
 		parkingEnvelopeRobot1.setTrajectory(parkingPoseRobot1);
 		parkingEnvelopeRobot1.setRobotID(1);
 		
-		//TODO 2: change into meets and see result
+		//TODO 2: Modify the example so that the robot is constrained to be
+		//        either parked or moving
 		AllenIntervalConstraint before = new AllenIntervalConstraint(AllenIntervalConstraint.Type.Before, new Bounds(1,APSPSolver.INF));
 		before.setFrom(parkingEnvelopeRobot1);
 		before.setTo(trajEnvelopeRobot1);
