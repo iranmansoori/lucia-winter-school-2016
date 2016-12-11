@@ -40,7 +40,8 @@ repositories {
 dependencies {
   /* An external maven artifact dependency */
   compile 'org.ros.rosjava_core:rosjava:[0.2,0.3)'
-  compile 'org.metacsp:meta-csp-framework:0.0.0-SNAPSHOT'
+  //compile 'org.metacsp:meta-csp-framework:0.0.0-SNAPSHOT'
+  compile 'org.metacsp:meta-csp-framework:1.2.1'
   compile 'org.ros.rosjava_messages:visualization_msgs:1.10.+'
   /* Example of a local subproject dependency */ 
   compile 'org.ros.rosjava_messages:services:0.0.0'
