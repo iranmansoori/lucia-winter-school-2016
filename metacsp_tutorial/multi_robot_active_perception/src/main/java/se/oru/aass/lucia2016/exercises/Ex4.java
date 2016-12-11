@@ -285,14 +285,6 @@ public class Ex4 extends AbstractNodeMain {
 			//return toReturn;											
 		}
 
-		// IRAN: UNOCMMENT THIS IF YOU HAVE PROBLEMS WITH SCHEDULING
-		//		if (!intersectionse1se2.coveredBy(se1)) {
-		//			logger.info("Intersection " + var1 + " with " + var2 + " is corrupted - skipping");
-		//			return toReturn;											
-		//		}
-
-		//		logger.info("Refining " + var1 + " with " + var2);
-
 		ArrayList<PoseSteering> var1sec1 = new ArrayList<PoseSteering>();
 		ArrayList<PoseSteering> var1sec2 = new ArrayList<PoseSteering>();
 		ArrayList<PoseSteering> var1sec3 = new ArrayList<PoseSteering>();

@@ -69,10 +69,10 @@ public class ViewSelectionValOH extends ValueOrderingH{
 		for (int i = 0; i < vvs.size(); i++) {
 			for (int j = 0; j < vvs.size(); j++) {
 				if(i == j) continue;
-				Geometry shape1 = ((GeometricShapeDomain)vvs.get(i).getTrajectoryEnvelope().
-						getEnvelopeVariable().getDomain()).getGeometry();
-				Geometry shape2 = ((GeometricShapeDomain)vvs.get(j).getTrajectoryEnvelope().
-						getEnvelopeVariable().getDomain()).getGeometry();
+				Geometry shape1 = ((GeometricShapeDomain)vvs.get(i).getFoV().
+						getDomain()).getGeometry();
+				Geometry shape2 = ((GeometricShapeDomain)vvs.get(j).getFoV().
+						getDomain()).getGeometry();
 				double intArea = shape1.intersection(shape2).getArea();
 				System.out.println("INT AREA IS " + intArea);
 				double percentCover1 = intArea/shape1.getArea();

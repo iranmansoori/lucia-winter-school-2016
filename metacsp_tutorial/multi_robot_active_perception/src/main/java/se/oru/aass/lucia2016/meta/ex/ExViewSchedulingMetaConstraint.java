@@ -74,7 +74,7 @@ public class ExViewSchedulingMetaConstraint extends MetaConstraint {
 			Vector<ConstraintNetwork> ret = new Vector<ConstraintNetwork>();
 			logger.finest("Doing binary peak collection with " + activities.size() + " activities...");
 			Activity[] groundVars = activities.toArray(new Activity[activities.size()]);
-			//TODO code here
+			//TODO 1 : check for temporal intersection
 			//--there is how you get the temporal bounds e.g., Earliest Start Time (EST) or Earliest End Time (EET)			
 			//long est = groundVars[INDEX].getTemporalVariable().getEST()			
 			//long eet = groundVars[INDEX].getTemporalVariable().getEST()
@@ -179,19 +179,14 @@ public class ExViewSchedulingMetaConstraint extends MetaConstraint {
 	}
 	
 	private boolean checkSpatialInterstion(GeometricShapeVariable poly1, GeometricShapeVariable poly2){
-		//TODO code here 
+		//TODO 2 : check for the spatial intersection
+		//with DE9IMRelation.getRelations(poly1, poly2), you can get all spatial relations between two polygons poly1 and poly2
 		
-		//new code
 //		for (DE9IMRelation.Type t : DE9IMRelation.getRelations(poly1, poly2)) {
 //			if (t.equals(DE9IMRelation.Type.Disjoint)) return false;
 //		}
 //		return true;
 		
-		//old code 
-//		Geometry shape1 = ((GeometricShapeDomain)poly1.getDomain()).getGeometry();
-//		Geometry shape2 = ((GeometricShapeDomain)poly2.getDomain()).getGeometry();
-//		if(shape1.intersects(shape2))
-//			return true;
 		return false;
 	}
 	
@@ -241,11 +236,15 @@ public class ExViewSchedulingMetaConstraint extends MetaConstraint {
 		else if(var1 instanceof ViewVariable && var2 instanceof TrajectoryEnvelope){
 			ViewVariable vv1 = (ViewVariable)var1;
 			TrajectoryEnvelope te2 = (TrajectoryEnvelope)var2;
+			
+			//TODO 4 : implement the temporal resolver between two intersecting viewVariable and a TrajectoryEnvelope 
 			ret = getViewVarTrajResolver(vv1, te2);
 		}
 		else if(var1 instanceof TrajectoryEnvelope && var2 instanceof ViewVariable){
 			ViewVariable vv1 = (ViewVariable)var2;
 			TrajectoryEnvelope te2 = (TrajectoryEnvelope)var1;
+			
+			//TODO 5 : implement the temporal resolver between two intersecting viewVariable and a TrajectoryEnvelope
 			ret = getViewVarTrajResolver(vv1, te2);
 		}				
 		
@@ -292,9 +291,9 @@ public class ExViewSchedulingMetaConstraint extends MetaConstraint {
 		
 
 		ConstraintNetwork resolver2 = new ConstraintNetwork(null);
-		TrajectoryEnvelope moveOutTE = getMoveOut(vv2.getTrajectoryEnvelope().getRobotID());
+		TrajectoryEnvelope moveAwayTE = getMoveOut(vv2.getTrajectoryEnvelope().getRobotID());
 		
-		if(moveOutTE == null){
+		if(moveAwayTE == null){
 			VariablePrototype moveOut = new VariablePrototype(viewSolver.getTrajectoryEnvelopeSolver(), metaSolver.getPrefix() + vv2.getTrajectoryEnvelope().getRobotID(),vv2.getTrajectoryEnvelope().getFootprint(),vv2.getTrajectoryEnvelope().getRobotID(), false);
 			resolver2.addVariable(moveOut);					
 
@@ -309,7 +308,7 @@ public class ExViewSchedulingMetaConstraint extends MetaConstraint {
 			resolver2.addConstraint(senseMeetsMoveAway);
 			
 		}
-		else getViewVarViewVarResolverHelper(vv1, moveOutTE, resolver2);
+		else getViewVarViewVarResolverHelper(vv1, moveAwayTE, resolver2);
 
 		ret.add(resolver2);
 		return ret;
