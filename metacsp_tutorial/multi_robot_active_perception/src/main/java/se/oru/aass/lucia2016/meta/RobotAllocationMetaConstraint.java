@@ -1,5 +1,6 @@
 package se.oru.aass.lucia2016.meta;
 
+import java.util.List;
 import java.util.Vector;
 
 import org.metacsp.framework.Constraint;
@@ -26,6 +27,12 @@ public class RobotAllocationMetaConstraint extends MetaConstraint {
 	
 	private static final long serialVersionUID = -4876976005187040794L;
 
+	private List<Integer> robotIDs = null;
+	
+	public void setRobotIDs(List<Integer> robotIDs) {
+		this.robotIDs = robotIDs;
+	}
+	
 	public RobotAllocationMetaConstraint(VariableOrderingH varOH,
 			ValueOrderingH valOH) {
 		super(varOH, valOH);
@@ -62,7 +69,7 @@ public class RobotAllocationMetaConstraint extends MetaConstraint {
 			int[] a = c.next();
 			ConstraintNetwork cn = new ConstraintNetwork(null);
 			for (int i = 0; i < a.length; i++) {
-				RobotAllocationConstraint rc = new RobotAllocationConstraint(a[i]+1);
+				RobotAllocationConstraint rc = new RobotAllocationConstraint(robotIDs.get(a[i]));
 				rc.setFrom(((ViewVariable)vars[i]));
 				rc.setTo(((ViewVariable)vars[i]));
 				cn.addConstraint(rc);				
