@@ -62,7 +62,7 @@ public class Ex4 extends AbstractNodeMain {
 	private FlapForChaosDispatchingFunction[] dfs = null;
 	
 	//TODO 2: set to true to see your robots moving in Gazebo!
-	private boolean dispatching = true;
+	private boolean dispatching = false;
 
 	//Exercise method
 	private void setupConstraintNetwork() {
