@@ -1,7 +1,9 @@
 <?xml version="1.0"?>
 <launch>
-  <node name="metacsp_tutorial" pkg="metacsp_tutorial" type="multi_robot_active_perception" args="se.oru.aass.lucia2016.execution.MultiRobotCoordinator" output="screen">
-  </node>
+  <node name="metacsp_tutorial" pkg="metacsp_tutorial" type="multi_robot_active_perception" args="se.oru.aass.lucia2016.execution.MultiRobotCoordinator" output="screen"></node>
+  <rosparam param="used_robots">[2,3]</rosparam>
+  <rosparam param="master_robot">2</rosparam>
+  <!--param name="master_robot" type="int" value="1" /-->
 </launch>
 
 

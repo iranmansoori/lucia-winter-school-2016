@@ -2,6 +2,7 @@ package se.oru.aass.lucia2016.execution;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Random;
 import java.util.Vector;
 import java.util.logging.Level;
@@ -31,6 +32,7 @@ import org.ros.message.MessageListener;
 import org.ros.namespace.GraphName;
 import org.ros.node.AbstractNodeMain;
 import org.ros.node.ConnectedNode;
+import org.ros.node.parameter.ParameterTree;
 import org.ros.node.service.ServiceClient;
 import org.ros.node.service.ServiceResponseBuilder;
 import org.ros.node.service.ServiceResponseListener;
@@ -69,7 +71,10 @@ public class MultiRobotCoordinator extends AbstractNodeMain {
 	private HashMap<Integer, geometry_msgs.Pose> robotsCurrentPose = new HashMap<Integer, geometry_msgs.Pose>();
 	private Object semaphore = new Object();
 	private boolean poseReceived = false; 
-	private static final int NUMBEROFROBOTS = 3; 
+	private ParameterTree params;
+	private List<Integer> usedRobots = null;
+	private int masterRobot = -1;
+	//private static final int NUMBEROFROBOTS = 3; 
 	private boolean solved = false;
 	private ConstraintNetworkAnimator animator = null;
 	private Vector<Pose> cameraPoses = null;
@@ -108,12 +113,13 @@ public class MultiRobotCoordinator extends AbstractNodeMain {
 		//Define and add the meta-constraints:
 		//  1. ViewSelectionMetaConstraint: selects view poses to navigate to 
 		ViewSelectionMetaConstraint viewSelectionMC = new ViewSelectionMetaConstraint(null, new Ex7());	
-		viewSelectionMC.setNumberOfRobots(NUMBEROFROBOTS);
+		viewSelectionMC.setNumberOfRobots(usedRobots.size());
 		metaSolver.addMetaConstraint(viewSelectionMC);
 		
 		//  2. RobotAllocationMetaConstraint: takes care of assigning robots to selected view poses
 		RobotAllocationValOH robotSelectionValOH = new RobotAllocationValOH(metaSolver);
 		RobotAllocationMetaConstraint robotAllocationMC = new RobotAllocationMetaConstraint(null, robotSelectionValOH);
+		robotAllocationMC.setRobotIDs(usedRobots);
 		metaSolver.addMetaConstraint(robotAllocationMC);
 		
 		//  3. ViewSchedulingMetaConstraint: ensures that trajectory envelopes do not obstruct FoV of robots in view poses
@@ -215,9 +221,9 @@ public class MultiRobotCoordinator extends AbstractNodeMain {
 				return getCurrentTime();
 			}
 		};		
-		dfs = new FlapForChaosDispatchingFunction[NUMBEROFROBOTS];
-		for (int i = 1; i <= NUMBEROFROBOTS; i++) {
-			dfs[i-1] = new FlapForChaosDispatchingFunction("turtlebot"+i, viewSolver.getTrajectoryEnvelopeSolver(), connectedNode);
+		dfs = new FlapForChaosDispatchingFunction[usedRobots.size()];
+		for (int i = 0; i < usedRobots.size(); i++) {
+			dfs[i] = new FlapForChaosDispatchingFunction("turtlebot"+usedRobots.get(i), viewSolver.getTrajectoryEnvelopeSolver(), connectedNode);
 		}
 		animator.addDispatchingFunctions(ans, dfs);		
 		
@@ -253,8 +259,13 @@ public class MultiRobotCoordinator extends AbstractNodeMain {
 			catch(NullPointerException e) { }
 		}
 		
+		params = connectedNode.getParameterTree();
+		
+		usedRobots = (List<Integer>)params.getList("/used_robots");
+		masterRobot = (Integer)params.getInteger("/master_robot");
+
 		//subscribe to robot pose topic
-		for (int i = 1; i <= NUMBEROFROBOTS; i++) {
+		for (Integer i : usedRobots) {
 			subscribeToRobotReportTopic(i);
 		}
 		
@@ -317,7 +328,7 @@ public class MultiRobotCoordinator extends AbstractNodeMain {
 	}
 	
 	private void subscribeToMapServer() {
-		Subscriber<nav_msgs.OccupancyGrid> mapSubscriber = this.connectedNode.newSubscriber("/turtlebot1/move_base/global_costmap/costmap", nav_msgs.OccupancyGrid._TYPE);
+		Subscriber<nav_msgs.OccupancyGrid> mapSubscriber = this.connectedNode.newSubscriber("/turtlebot" + masterRobot + "/move_base/global_costmap/costmap", nav_msgs.OccupancyGrid._TYPE);
 		mapSubscriber.addMessageListener(new MessageListener<nav_msgs.OccupancyGrid>() {
 			@Override
 			public void onNewMessage(nav_msgs.OccupancyGrid message) {
@@ -340,10 +351,10 @@ public class MultiRobotCoordinator extends AbstractNodeMain {
 	}
 	
 	private void cancelAllRobotMotions() {
-		for (int i = 1; i <= NUMBEROFROBOTS; i++) {
+		for (int i = 0; i < usedRobots.size(); i++) {
 			final actionlib_msgs.GoalID gd = connectedNode.getTopicMessageFactory().newFromType(actionlib_msgs.GoalID._TYPE);
 			gd.setId("");
-			final Publisher<actionlib_msgs.GoalID> publisher = connectedNode.newPublisher("/turtlebot" + i + "/move_base/cancel", actionlib_msgs.GoalID._TYPE);
+			final Publisher<actionlib_msgs.GoalID> publisher = connectedNode.newPublisher("/turtlebot" + usedRobots.get(i) + "/move_base/cancel", actionlib_msgs.GoalID._TYPE);
 			int counter = 0;
 			while (counter < 100) {
 				publisher.publish(gd);
@@ -362,7 +373,7 @@ public class MultiRobotCoordinator extends AbstractNodeMain {
 		
 		ServiceClient<GetObservationCameraPosesRequest, GetObservationCameraPosesResponse> serviceClient;
 		try {			
-			serviceClient = connectedNode.newServiceClient("/turtlebot1/get_observation_camera_poses_reachable", GetObservationCameraPoses._TYPE);			
+			serviceClient = connectedNode.newServiceClient("/turtlebot" + masterRobot + "/get_observation_camera_poses_reachable", GetObservationCameraPoses._TYPE);			
 
 		} catch (ServiceNotFoundException e) {
 			throw new RosRuntimeException(e);
