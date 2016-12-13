@@ -1,6 +1,7 @@
 package se.oru.aass.lucia2016.exercises;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -28,6 +29,7 @@ import org.ros.message.MessageListener;
 import org.ros.namespace.GraphName;
 import org.ros.node.AbstractNodeMain;
 import org.ros.node.ConnectedNode;
+import org.ros.node.parameter.ParameterTree;
 import org.ros.node.topic.Subscriber;
 
 import com.vividsolutions.jts.geom.Coordinate;
@@ -55,7 +57,9 @@ public class Ex4 extends AbstractNodeMain {
 	private TrajectoryEnvelopeSolver trajectoryEnvelopeSolver = null;
 	private ActivityNetworkSolver ans = null;
 	private HashMap<Integer, geometry_msgs.Pose> robotsCurrentPose = new HashMap<Integer, geometry_msgs.Pose>();
-	private static final int NUMBEROFROBOTS = 3; 
+//	private static final int NUMBEROFROBOTS = 3; 
+	private ParameterTree params;
+	private List<Integer> usedRobots = null;
 	private ConstraintNetworkAnimator animator = null;
 	private static final long HORIZON = 10000000;
 	private long ORIGIN = 0;
@@ -456,9 +460,14 @@ public class Ex4 extends AbstractNodeMain {
 			catch(NullPointerException e) { }
 		}
 		
+		params = connectedNode.getParameterTree();
+
+		dispatching = (Boolean)params.getBoolean("/dispatching");
+		usedRobots = (List<Integer>)params.getList("/used_robots");
+
 		//subscribe to robot pose topic
-		for (int i = 1; i <= NUMBEROFROBOTS; i++) {
-			subscribeToRobotReportTopic(i);
+		for (int i = 0; i < usedRobots.size(); i++) {
+			subscribeToRobotReportTopic(usedRobots.get(i));
 		}
 		
 		setupSolvers();
@@ -481,9 +490,9 @@ public class Ex4 extends AbstractNodeMain {
 			}
 		};
 		
-		dfs = new FlapForChaosDispatchingFunction[NUMBEROFROBOTS];
-		for (int i = 1; i <= NUMBEROFROBOTS; i++) {
-			dfs[i-1] = new FlapForChaosDispatchingFunction("turtlebot"+i, trajectoryEnvelopeSolver, connectedNode);
+		dfs = new FlapForChaosDispatchingFunction[usedRobots.size()];
+		for (int i = 0; i < usedRobots.size(); i++) {
+			dfs[i] = new FlapForChaosDispatchingFunction("turtlebot"+usedRobots.get(i), trajectoryEnvelopeSolver, connectedNode);
 		}
 		animator.addDispatchingFunctions(ans, dfs);
 	}
