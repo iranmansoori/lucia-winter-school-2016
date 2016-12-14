@@ -214,6 +214,11 @@ public class ViewCoordinator extends MetaConstraintSolver{
 			for (Integer rid : robotToVewvariable.keySet()) {				
 				ViewVariable vv = robotToVewvariable.get(rid);
 
+				while (robotsCurrentPose.get(rid) == null) {
+					try { Thread.sleep(10); }
+					catch (InterruptedException e) { e.printStackTrace(); }
+				}
+				
 				Pose vvPose = vv.getTrajectoryEnvelope().getTrajectory().getPose()[vv.getTrajectoryEnvelope().getTrajectory().getPose().length - 1];
 				robToPathStatus.put(rid, false);
 				synchronized (semaphore) {

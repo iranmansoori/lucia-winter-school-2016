@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
   <node name="metacsp_tutorial" pkg="metacsp_tutorial" type="multi_robot_active_perception" args="se.oru.aass.lucia2016.exercises.Ex4" output="screen"></node>
-  <rosparam param="used_robots">[1,2,3]</rosparam>
+  <rosparam param="used_robots">[1,2]</rosparam>
   <rosparam param="dispatching">true</rosparam>
 </launch>
 

@@ -71,14 +71,18 @@ public class Ex4 extends AbstractNodeMain {
 	//Exercise method
 	private void setupConstraintNetwork() {
 		
-		//Hard coded poses in the Lucia map
-		Pose pose1 = new Pose(4.7579498291, 0.84562087059, 0.551774602413026);
-		Pose pose2 = new Pose(2.45750570297, 2.96492242813, -3.12842980123163);
+		//Hard coded poses in the Lucia map, for Gazebo
+//		Pose pose1 = new Pose(4.7579498291, 0.84562087059, 0.551774602413026);
+//		Pose pose2 = new Pose(2.45750570297, 2.96492242813, -3.12842980123163);
+		
+		//Hard coded poses in the Lucia map, for Real robots
+		Pose pose1 = new Pose(1.15, 3.7, 0.551774602413026);
+		Pose pose2 = new Pose(4.51, 1.46, -3.12842980123163);
 		
 		//Get paths from ROS so that turtlebot1 and turtlebot2
 		//can reach these poses, and create TrajectoryEnvelopes around them
-		TrajectoryEnvelope trajectoryEnvelopeRobot1 = createTrajectoryEnvelope(pose1, 1);
-		TrajectoryEnvelope trajectoryEnvelopeRobot2 = createTrajectoryEnvelope(pose2, 2);
+		TrajectoryEnvelope trajectoryEnvelopeRobot1 = createTrajectoryEnvelope(pose1, usedRobots.get(0));
+		TrajectoryEnvelope trajectoryEnvelopeRobot2 = createTrajectoryEnvelope(pose2, usedRobots.get(1));
 		
 		//Create a parking polygon for turtlebot1
 		TrajectoryEnvelope parkingRobot1 = (TrajectoryEnvelope)trajectoryEnvelopeSolver.createVariable("turtlebot1");
@@ -135,8 +139,8 @@ public class Ex4 extends AbstractNodeMain {
 		//TODO 3: If we had a more sophisticated controller, we could refine our reasoning
 		//        -- set dispatching to false again,
 		//        -- uncomment below and see the GUI
-//		refineTrajectoryEnvelopes(trajectoryEnvelopeRobot1, trajectoryEnvelopeRobot2);
-//		refineTrajectoryEnvelopes(trajectoryEnvelopeRobot2, trajectoryEnvelopeRobot1);
+		refineTrajectoryEnvelopes(trajectoryEnvelopeRobot1, trajectoryEnvelopeRobot2);
+		refineTrajectoryEnvelopes(trajectoryEnvelopeRobot2, trajectoryEnvelopeRobot1);
 		
 		//TODO 1: Check whether envelopes overlap spatially and temporally, and if so, separate them temporally
 		boolean spatiallyOverlapping = false;
@@ -202,7 +206,12 @@ public class Ex4 extends AbstractNodeMain {
 		robToPathPoses.put(rid, new Vector<Pose>());
 		robToPathStatus.put(rid, false);
 		
-		PathPlanFactory.getRobotPathPlanFromROSSerive(robToPathStatus, robToPathPoses, connectedNode, rid, 
+		while (robotsCurrentPose.get(rid) == null) {
+			try { Thread.sleep(10); }
+			catch (InterruptedException e) { e.printStackTrace(); }
+		}
+		
+		PathPlanFactory.getRobotPathPlanFromROSSerive(robToPathStatus, robToPathPoses, connectedNode, rid,
 				Convertor.getPoseStamped(robotsCurrentPose.get(rid), connectedNode), 
 				Convertor.getPoseStamped(goalPose, connectedNode));
 		
